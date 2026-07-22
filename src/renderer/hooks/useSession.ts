@@ -81,11 +81,11 @@ export function useSession() {
       let sessionToken = sessionStore.sessionToken;
       let tokenExpiresAt = sessionStore.tokenExpiresAt;
 
-      if (sessionStore.isTokenExpired()) {
+      if (sessionStore.isTokenExpired(accessToken)) {
         const tokenResult = await generateTokenMutation.mutateAsync({});
         sessionToken = tokenResult.sessionToken;
         tokenExpiresAt = tokenResult.expiresAt;
-        sessionStore.setSessionToken(sessionToken, tokenExpiresAt);
+        sessionStore.setSessionToken(sessionToken, tokenExpiresAt, accessToken);
       }
 
       if (!sessionToken) {
@@ -162,7 +162,13 @@ export function useSession() {
       }
 
       console.log('[useSession] Recording started successfully, sessionId:', captureSession.sessionId);
-      sessionStore.startSession(captureSession.sessionId, sessionToken!, tokenExpiresAt!, result.screenWsConnectionId);
+      sessionStore.startSession(
+        captureSession.sessionId,
+        sessionToken!,
+        tokenExpiresAt!,
+        accessToken,
+        result.screenWsConnectionId
+      );
     } catch (error) {
       console.log('[useSession] Error starting recording:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to start recording';
