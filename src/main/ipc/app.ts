@@ -1,5 +1,5 @@
 import { ipcMain, shell, Notification, BrowserWindow, nativeTheme } from 'electron';
-import type { ThemeSource } from '../../shared/types/ipc.types';
+import { isThemeSource } from '../../shared/theme';
 import { loadAppConfig, loadRuntimeConfig, clearAppConfig } from '../lib/config';
 import { VideoDBService } from '../services/videodb.service';
 import { getServerStatus } from '../server';
@@ -8,9 +8,6 @@ import os from 'os';
 import path from 'path';
 
 const logger = createChildLogger('ipc-app');
-
-const isThemeSource = (source: unknown): source is ThemeSource =>
-  source === 'system' || source === 'light' || source === 'dark';
 
 export function setupAppHandlers(): void {
   ipcMain.handle(

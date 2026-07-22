@@ -21,7 +21,8 @@ import {
   Moon,
 } from 'lucide-react';
 import { useConfigStore } from '../../stores/config.store';
-import { type Theme, useThemeStore } from '../../stores/theme.store';
+import { useThemeStore } from '../../stores/theme.store';
+import type { ThemeSource } from '../../../shared/theme';
 import { MCPServersPanel } from './MCPServersPanel';
 import { NotificationsPanel } from './NotificationsPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
@@ -345,7 +346,11 @@ function AccountPanel() {
               { value: 'system', label: 'System', Icon: Monitor },
               { value: 'light', label: 'Light', Icon: Sun },
               { value: 'dark', label: 'Dark', Icon: Moon },
-            ] as const satisfies readonly { value: Theme; label: string; Icon: typeof Monitor }[]
+            ] as const satisfies readonly {
+              value: ThemeSource;
+              label: string;
+              Icon: typeof Monitor;
+            }[]
           ).map(({ value, label, Icon }) => (
             <button
               key={value}

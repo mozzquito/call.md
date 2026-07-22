@@ -1,17 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ThemeSource } from '../../shared/types/ipc.types';
-
-export type Theme = ThemeSource;
-export type ResolvedTheme = Exclude<ThemeSource, 'system'>;
+import { resolveTheme, type ThemeSource } from '../../shared/theme';
 
 interface ThemeState {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  theme: ThemeSource;
+  setTheme: (theme: ThemeSource) => void;
 }
-
-export const resolveTheme = (theme: Theme, prefersDark: boolean): ResolvedTheme =>
-  theme === 'system' ? (prefersDark ? 'dark' : 'light') : theme;
 
 export const useThemeStore = create<ThemeState>()(
   persist(

@@ -5,6 +5,7 @@ import type {
   UpcomingMeeting,
 } from './calendar.types';
 import type { Workflow } from './workflow.types';
+import type { ThemeSource } from '../theme';
 
 export interface StartRecordingParams {
   config: CaptureConfig;
@@ -70,8 +71,6 @@ export interface StopRecordingResult {
   success: boolean;
   error?: string;
 }
-
-export type ThemeSource = 'system' | 'light' | 'dark';
 
 // Copilot types
 export interface CopilotTranscriptSegment {
