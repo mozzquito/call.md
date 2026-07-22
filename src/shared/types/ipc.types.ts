@@ -71,6 +71,8 @@ export interface StopRecordingResult {
   error?: string;
 }
 
+export type ThemeSource = 'system' | 'light' | 'dark';
+
 // Copilot types
 export interface CopilotTranscriptSegment {
   id: string;
@@ -230,6 +232,7 @@ export interface IpcApi {
     showNotification: (title: string, body: string) => Promise<void>;
     openPlayerWindow: (url: string) => Promise<void>;
     openCallMdFolder: (path: string) => Promise<void>;
+    setThemeSource: (source: ThemeSource) => Promise<void>;
   };
   visualIndex: {
     saveItem: (data: {

@@ -49,17 +49,17 @@ function LogoIcon() {
 function SystemAudioIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 3.33334V16.6667" stroke="#EC5B16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M5.83334 6.66666V13.3333" stroke="#EC5B16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M14.1667 6.66666V13.3333" stroke="#EC5B16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M1.66666 8.33334V11.6667" stroke="#EC5B16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M18.3333 8.33334V11.6667" stroke="#EC5B16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M10 3.33334V16.6667" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M5.83334 6.66666V13.3333" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M14.1667 6.66666V13.3333" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M1.66666 8.33334V11.6667" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M18.3333 8.33334V11.6667" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
 
 // Microphone icon
-function MicrophoneIcon({ color = "#EC5B16" }: { color?: string }) {
+function MicrophoneIcon({ color = "hsl(var(--primary))" }: { color?: string }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M10 1.66666C9.11594 1.66666 8.26809 2.01785 7.643 2.643C7.0179 3.26809 6.66671 4.11594 6.66671 5V10C6.66671 10.8841 7.0179 11.7319 7.643 12.357C8.26809 12.9821 9.11594 13.3333 10 13.3333C10.8841 13.3333 11.732 12.9821 12.357 12.357C12.9822 11.7319 13.3334 10.8841 13.3334 10V5C13.3334 4.11594 12.9822 3.26809 12.357 2.643C11.732 2.01785 10.8841 1.66666 10 1.66666Z" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -70,7 +70,7 @@ function MicrophoneIcon({ color = "#EC5B16" }: { color?: string }) {
 }
 
 // Screen capture icon
-function ScreenCaptureIcon({ color = "#969696" }: { color?: string }) {
+function ScreenCaptureIcon({ color = "hsl(var(--muted-foreground))" }: { color?: string }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M16.6667 3.33334H3.33333C2.41286 3.33334 1.66666 4.07954 1.66666 5V12.5C1.66666 13.4205 2.41286 14.1667 3.33333 14.1667H16.6667C17.5871 14.1667 18.3333 13.4205 18.3333 12.5V5C18.3333 4.07954 17.5871 3.33334 16.6667 3.33334Z" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -86,11 +86,11 @@ function PermissionToggle({ enabled, onClick }: { enabled: boolean; onClick?: ()
     <button
       onClick={onClick}
       className={`w-[38px] h-[22px] rounded-[22px] relative transition-colors ${
-        enabled ? 'bg-[#ec5b16]' : 'bg-[#e4e4ec]'
+        enabled ? 'bg-primary' : 'bg-muted-foreground/30'
       }`}
     >
       <div
-        className={`absolute size-[18px] bg-white rounded-[9px] top-[2px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.15)] transition-all ${
+        className={`absolute size-[18px] bg-primary-foreground rounded-[9px] top-[2px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.15)] transition-all ${
           enabled ? 'left-[18px]' : 'left-[2px]'
         }`}
       />
@@ -100,7 +100,7 @@ function PermissionToggle({ enabled, onClick }: { enabled: boolean; onClick?: ()
 
 
 // Notification icon for permissions
-function NotificationIcon({ color = "#969696" }: { color?: string }) {
+function NotificationIcon({ color = "hsl(var(--muted-foreground))" }: { color?: string }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -155,13 +155,13 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
   }, [status.screen, checkPermissions]);
 
   return (
-    <div className="h-full w-full bg-white flex flex-col relative overflow-hidden">
+    <div className="h-full w-full bg-background flex flex-col relative overflow-hidden">
       {/* Orange gradient glow */}
       <div
         className="absolute top-[-22.76%] left-1/2 -translate-x-1/2 w-[600px] h-[566px] rounded-[300px] pointer-events-none"
         style={{
           background:
-            'radial-gradient(circle at center, rgba(236,91,22,0.08) 0%, rgba(236,91,22,0) 70%)',
+            'radial-gradient(circle at center, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0) 70%)',
         }}
       />
 
@@ -178,10 +178,10 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
           <div className="flex flex-col gap-[20px]">
             <LogoIcon />
             <div className="flex flex-col">
-              <h1 className="text-[22px] font-semibold text-black tracking-[-0.44px] leading-[32px]">
+              <h1 className="text-[22px] font-semibold text-foreground tracking-[-0.44px] leading-[32px]">
                 Before we start,
               </h1>
-              <h1 className="text-[22px] font-semibold text-black tracking-[-0.44px] leading-[32px]">
+              <h1 className="text-[22px] font-semibold text-foreground tracking-[-0.44px] leading-[32px]">
                 grant a few permissions
               </h1>
             </div>
@@ -193,22 +193,22 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
             <div
               className={`flex gap-[14px] items-center px-[17px] py-[15px] rounded-[16px] border ${
                 status.screen
-                  ? 'bg-[#fff5ec] border-[#ffe9d3]'
-                  : 'bg-white border-[#efefef]'
+                  ? 'bg-accent border-primary/20'
+                  : 'bg-card border-border'
               }`}
             >
               <div
                 className={`size-[36px] rounded-[10px] flex items-center justify-center border ${
                   status.screen
-                    ? 'bg-[rgba(236,91,22,0.1)] border-[rgba(236,91,22,0.3)]'
-                    : 'bg-white border-[#ededf3]'
+                    ? 'bg-primary/10 border-primary/30'
+                    : 'bg-card border-border'
                 }`}
               >
                 <SystemAudioIcon />
               </div>
               <div className="flex-1 flex flex-col gap-[3px]">
-                <p className="text-[16px] font-medium text-[#141420] leading-[20px]">System audio</p>
-                <p className="text-[13px] font-normal text-[#969696] leading-[18px]">
+                <p className="text-[16px] font-medium text-foreground leading-[20px]">System audio</p>
+                <p className="text-[13px] font-normal text-muted-foreground leading-[18px]">
                   Capture audio from meeting apps like Zoom, Meet, and Teams.
                 </p>
               </div>
@@ -222,22 +222,22 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
             <div
               className={`flex gap-[14px] items-center px-[17px] py-[15px] rounded-[16px] border ${
                 status.microphone
-                  ? 'bg-[#fff5ec] border-[#ffe9d3]'
-                  : 'bg-white border-[#efefef]'
+                  ? 'bg-accent border-primary/20'
+                  : 'bg-card border-border'
               }`}
             >
               <div
                 className={`size-[36px] rounded-[10px] flex items-center justify-center border ${
                   status.microphone
-                    ? 'bg-[rgba(236,91,22,0.1)] border-[rgba(236,91,22,0.3)]'
-                    : 'bg-white border-[#ededf3]'
+                    ? 'bg-primary/10 border-primary/30'
+                    : 'bg-card border-border'
                 }`}
               >
-                <MicrophoneIcon color={status.microphone ? '#EC5B16' : '#969696'} />
+                <MicrophoneIcon color={status.microphone ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} />
               </div>
               <div className="flex-1 flex flex-col gap-[3px]">
-                <p className="text-[16px] font-medium text-[#141420] leading-[20px]">Microphone</p>
-                <p className="text-[13px] font-normal text-[#969696] leading-[18px]">
+                <p className="text-[16px] font-medium text-foreground leading-[20px]">Microphone</p>
+                <p className="text-[13px] font-normal text-muted-foreground leading-[18px]">
                   Record your voice during meetings and calls.
                 </p>
               </div>
@@ -251,22 +251,22 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
             <div
               className={`flex gap-[14px] items-center px-[17px] py-[15px] rounded-[16px] border ${
                 status.screen
-                  ? 'bg-[#fff5ec] border-[#ffe9d3]'
-                  : 'bg-white border-[#efefef]'
+                  ? 'bg-accent border-primary/20'
+                  : 'bg-card border-border'
               }`}
             >
               <div
                 className={`size-[36px] rounded-[10px] flex items-center justify-center border ${
                   status.screen
-                    ? 'bg-[rgba(236,91,22,0.1)] border-[rgba(236,91,22,0.3)]'
-                    : 'bg-white border-[#ededf3]'
+                    ? 'bg-primary/10 border-primary/30'
+                    : 'bg-card border-border'
                 }`}
               >
-                <ScreenCaptureIcon color={status.screen ? '#EC5B16' : '#969696'} />
+                <ScreenCaptureIcon color={status.screen ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} />
               </div>
               <div className="flex-1 flex flex-col gap-[3px]">
-                <p className="text-[16px] font-medium text-[#141420] leading-[20px]">Screen capture</p>
-                <p className="text-[13px] font-normal text-[#969696] leading-[18px]">
+                <p className="text-[16px] font-medium text-foreground leading-[20px]">Screen capture</p>
+                <p className="text-[13px] font-normal text-muted-foreground leading-[18px]">
                   Record your screen to capture shared content and visual context.
                 </p>
               </div>
@@ -281,22 +281,22 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
           <div
             className={`flex gap-[14px] items-center px-[17px] py-[15px] rounded-[16px] border ${
               notificationsEnabled
-                ? 'bg-[#fff5ec] border-[#ffe9d3]'
-                : 'bg-white border-[#efefef]'
+                ? 'bg-accent border-primary/20'
+                : 'bg-card border-border'
             }`}
           >
             <div
               className={`size-[36px] rounded-[10px] flex items-center justify-center border ${
                 notificationsEnabled
-                  ? 'bg-[rgba(236,91,22,0.1)] border-[rgba(236,91,22,0.3)]'
-                  : 'bg-white border-[#ededf3]'
+                  ? 'bg-primary/10 border-primary/30'
+                  : 'bg-card border-border'
               }`}
             >
-              <NotificationIcon color={notificationsEnabled ? '#EC5B16' : '#969696'} />
+              <NotificationIcon color={notificationsEnabled ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} />
             </div>
             <div className="flex-1 flex flex-col gap-[3px]">
-              <p className="text-[16px] font-medium text-[#141420] leading-[20px]">App notifications</p>
-              <p className="text-[13px] font-normal text-[#969696] leading-[18px]">
+              <p className="text-[16px] font-medium text-foreground leading-[20px]">App notifications</p>
+              <p className="text-[13px] font-normal text-muted-foreground leading-[18px]">
                 Get alerts before your meetings start.
               </p>
             </div>
@@ -311,7 +311,7 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
             <button
               onClick={handleContinue}
               disabled={!allGranted}
-              className="w-full bg-[#ff4000] hover:bg-[#e63900] disabled:bg-[#ffb399] disabled:cursor-not-allowed rounded-[12px] px-[24px] py-[12px] text-[16px] font-semibold text-white text-center leading-[22.5px] transition-colors"
+              className="w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed rounded-[12px] px-[24px] py-[12px] text-[16px] font-semibold text-white text-center leading-[22.5px] transition-colors"
             >
               Continue to setup
             </button>
@@ -319,7 +319,7 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
         </div>
 
         {/* Right side - Permissions Video */}
-        <div className="flex-1 h-full min-h-[400px] bg-[#f7f7f7] rounded-[16px] overflow-hidden flex items-center justify-center">
+        <div className="flex-1 h-full min-h-[400px] bg-secondary rounded-[16px] overflow-hidden flex items-center justify-center">
           <video
             src={permissionsVideo}
             autoPlay
@@ -398,17 +398,17 @@ function RecordingView({ onBack }: RecordingViewProps) {
         <div className="flex-1 overflow-hidden p-6">
           <div className="max-w-4xl mx-auto h-full flex flex-col">
             <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-[18px] font-semibold text-[#141420]">Call Complete</h2>
+              <h2 className="text-[18px] font-semibold text-foreground">Call Complete</h2>
               <div className="flex gap-[8px]">
                 <button
                   onClick={handleGoBack}
-                  className="px-[14px] py-[8px] border border-[#ededf3] rounded-[10px] text-[13px] font-medium text-[#464646] hover:bg-[#f7f7f7] transition-colors"
+                  className="px-[14px] py-[8px] border border-border rounded-[10px] text-[13px] font-medium text-muted-foreground hover:bg-secondary transition-colors"
                 >
                   Back to Home
                 </button>
                 <button
                   onClick={handleStartNewCall}
-                  className="px-[14px] py-[8px] bg-[#ec5b16] hover:bg-[#d9520f] rounded-[10px] text-[13px] font-medium text-white transition-colors"
+                  className="px-[14px] py-[8px] bg-primary hover:bg-primary/90 rounded-[10px] text-[13px] font-medium text-white transition-colors"
                 >
                   Start New Call
                 </button>
@@ -426,15 +426,15 @@ function RecordingView({ onBack }: RecordingViewProps) {
   // Show processing state while generating summary (only after recording stopped)
   if (isProcessing) {
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-[#f7f7f7]">
+      <div className="flex flex-col h-full overflow-hidden bg-secondary">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-[#fff5ec] flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-[#ec5b16] animate-spin" />
+            <div className="w-16 h-16 mx-auto rounded-full bg-accent flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-black">Generating Call Summary</h2>
-              <p className="text-sm text-[#464646] mt-1">
+              <h2 className="text-lg font-semibold text-foreground">Generating Call Summary</h2>
+              <p className="text-sm text-muted-foreground mt-1">
                 Analyzing your conversation and preparing insights...
               </p>
             </div>
@@ -452,12 +452,12 @@ function RecordingView({ onBack }: RecordingViewProps) {
 
   // Show recording view with new Figma design
   return (
-    <div className="flex flex-col h-full bg-[#f7f7f7]">
+    <div className="flex flex-col h-full bg-secondary">
       {/* Header */}
       <RecordingHeader />
 
       {/* Main Container */}
-      <div className="flex-1 bg-white border border-[#efefef] rounded-t-[20px] mx-[10px] p-[20px] flex gap-[30px] overflow-hidden">
+      <div className="flex-1 bg-card border border-border rounded-t-[20px] mx-[10px] p-[20px] flex gap-[30px] overflow-hidden">
         {/* Left Column - Live Assist Panel */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <LiveAssistPanel />
@@ -469,7 +469,7 @@ function RecordingView({ onBack }: RecordingViewProps) {
           <MetricsBar />
 
           {/* Right Panel with scrollable content */}
-          <div className="flex-1 bg-[#f7f7f7] border border-[#efefef] rounded-[16px] p-[12px] flex flex-col gap-[16px] overflow-hidden min-h-0">
+          <div className="flex-1 bg-secondary border border-border rounded-[16px] p-[12px] flex flex-col gap-[16px] overflow-hidden min-h-0">
             {/* Meeting Agenda - only show if checklist exists */}
             {hasChecklist && <MeetingAgendaPanel checklist={checklist} />}
 
@@ -718,18 +718,18 @@ export function App() {
     // Step 1: Permissions (loading state)
     if (permissionsLoading) {
       return (
-        <div className="h-full w-full bg-[#f8f8fa] flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="h-full w-full bg-background flex flex-col items-center justify-center relative overflow-hidden">
           {/* Orange gradient glow */}
           <div
             className="absolute top-[-30%] left-1/2 -translate-x-1/2 w-[600px] h-[567px] rounded-[300px] pointer-events-none"
             style={{
               background:
-                'radial-gradient(circle at center, rgba(236,91,22,0.08) 0%, rgba(236,91,22,0) 70%)',
+                'radial-gradient(circle at center, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0) 70%)',
             }}
           />
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-8 h-8 text-[#ec5b16] animate-spin" />
-            <p className="text-[14px] text-[#464646]">Checking permissions...</p>
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <p className="text-[14px] text-muted-foreground">Checking permissions...</p>
           </div>
         </div>
       );
@@ -770,7 +770,7 @@ export function App() {
     // If showing meeting setup flow (after clicking Start Recording from HomeView)
     if (showMeetingSetup && activeTab === 'home') {
       return (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col h-full bg-background">
           <div className="flex-1 flex items-center justify-center overflow-auto py-8">
             <MeetingSetupFlow onCancel={() => setShowMeetingSetup(false)} />
           </div>
@@ -813,13 +813,13 @@ export function App() {
     (activeTab === 'home' && (permissionsLoading || !allGranted || needsCalendarSetup || showRecordingPrefs));
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col h-screen bg-background">
       {/* Title bar - minimal for setup flow, hidden in main app (new design has no title bar) */}
       <div
         className={`flex items-center shrink-0 drag-region relative ${
           isSetupFlow
-            ? 'h-[50px] bg-[#f8f8fa] border-b border-black/10'
-            : 'h-[50px] bg-white border-b border-black/10'
+            ? 'h-[50px] bg-background border-b border-border'
+            : 'h-[50px] bg-card border-b border-border'
         }`}
       >
         {/* Space for traffic lights */}
@@ -850,29 +850,29 @@ export function App() {
         <DialogContent className="max-w-[400px]">
           <DialogHeader>
             <div className="flex items-center gap-[12px]">
-              <div className="w-[40px] h-[40px] bg-[rgba(209,36,47,0.1)] rounded-[10px] flex items-center justify-center">
-                <AlertTriangle className="w-[20px] h-[20px] text-[#d1242f]" />
+              <div className="w-[40px] h-[40px] bg-destructive/10 rounded-[10px] flex items-center justify-center">
+                <AlertTriangle className="w-[20px] h-[20px] text-destructive" />
               </div>
               <div>
-                <DialogTitle className="text-[16px] font-semibold text-[#141420]">
+                <DialogTitle className="text-[16px] font-semibold text-foreground">
                   Discard meeting setup?
                 </DialogTitle>
               </div>
             </div>
-            <DialogDescription className="text-[14px] text-[#464646] mt-[12px]">
+            <DialogDescription className="text-[14px] text-muted-foreground mt-[12px]">
               You have unsaved changes in your meeting setup. If you leave now, your progress will be lost.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-[8px] mt-[16px]">
             <button
               onClick={cancelDiscardMeetingSetup}
-              className="flex-1 px-[16px] py-[10px] border border-[#ededf3] rounded-[10px] text-[14px] font-medium text-[#464646] hover:bg-[#f7f7f7] transition-colors"
+              className="flex-1 px-[16px] py-[10px] border border-border rounded-[10px] text-[14px] font-medium text-muted-foreground hover:bg-secondary transition-colors"
             >
               Keep editing
             </button>
             <button
               onClick={confirmDiscardMeetingSetup}
-              className="flex-1 px-[16px] py-[10px] bg-[#d1242f] hover:bg-[#b91c1c] rounded-[10px] text-[14px] font-medium text-white transition-colors"
+              className="flex-1 px-[16px] py-[10px] bg-destructive hover:bg-destructive/90 rounded-[10px] text-[14px] font-medium text-white transition-colors"
             >
               Discard
             </button>

@@ -43,7 +43,7 @@ export function Tooltip({ content, children, className }: TooltipProps) {
           <div
             className={cn(
               'h-[32px] px-[12px] flex items-center justify-center',
-              'bg-[#1e1e1e] text-white text-[10px] font-medium',
+              'bg-neutral-900 text-white text-[10px] font-medium',
               'rounded-[4px] whitespace-nowrap',
               'shadow-[0px_2.979px_4.468px_0px_rgba(0,2,40,0.14)]'
             )}

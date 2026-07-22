@@ -27,7 +27,7 @@ export function TopStatusBar() {
   // In idle state, show minimal status bar (MeetingSetupFlow handles recording start)
   if (!isRecording && status === 'idle') {
     return (
-      <div className="h-14 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg flex items-center justify-center px-6">
+      <div className="h-14 border-b bg-card/80 backdrop-blur-lg flex items-center justify-center px-6">
         <span className="text-sm text-muted-foreground">Prepare your meeting below</span>
       </div>
     );
@@ -35,11 +35,11 @@ export function TopStatusBar() {
 
   if (status === 'starting') {
     return (
-      <div className="h-16 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg flex items-center px-6 gap-6">
+      <div className="h-16 border-b bg-card/80 backdrop-blur-lg flex items-center px-6 gap-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-            <span className="text-2xl font-mono font-bold tracking-tight text-slate-400">0:00</span>
+            <span className="text-2xl font-mono font-bold tracking-tight text-muted-foreground">0:00</span>
           </div>
           <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
             STARTING
@@ -58,11 +58,11 @@ export function TopStatusBar() {
 
   if (status === 'processing') {
     return (
-      <div className="h-16 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg flex items-center px-6 gap-6">
+      <div className="h-16 border-b bg-card/80 backdrop-blur-lg flex items-center px-6 gap-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
-            <span className="text-2xl font-mono font-bold tracking-tight text-slate-500">
+            <span className="text-2xl font-mono font-bold tracking-tight text-muted-foreground">
               {formatDuration(elapsedTime)}
             </span>
           </div>
@@ -82,14 +82,14 @@ export function TopStatusBar() {
   }
 
   return (
-    <div className="h-16 border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg flex items-center px-6 gap-6">
+    <div className="h-16 border-b bg-card/80 backdrop-blur-lg flex items-center px-6 gap-6">
       {/* Recording Status */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <Circle
             className={cn(
               'w-3 h-3',
-              isRecording ? 'fill-red-500 text-red-500 animate-pulse' : 'text-slate-400'
+              isRecording ? 'fill-red-500 text-red-500 animate-pulse' : 'text-muted-foreground'
             )}
           />
           <span className="text-2xl font-mono font-bold tracking-tight">
@@ -103,16 +103,16 @@ export function TopStatusBar() {
         )}
       </div>
 
-      <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+      <div className="h-8 w-px bg-muted" />
 
       {/* Talk Ratio */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <Mic className="w-4 h-4 text-blue-500" />
-          <div className="text-sm font-medium text-slate-600 dark:text-slate-400">You</div>
+          <div className="text-sm font-medium text-muted-foreground">You</div>
           <div className="text-lg font-bold text-blue-600">{mePercent}%</div>
         </div>
-        <div className="w-24 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
           <div
             className={cn(
               'h-full transition-all duration-500',
@@ -123,7 +123,7 @@ export function TopStatusBar() {
         </div>
         <div className="flex items-center gap-2">
           <div className="text-lg font-bold text-purple-600">{themPercent}%</div>
-          <div className="text-sm font-medium text-slate-600 dark:text-slate-400">Them</div>
+          <div className="text-sm font-medium text-muted-foreground">Them</div>
           <Users className="w-4 h-4 text-purple-500" />
         </div>
       </div>
@@ -131,16 +131,16 @@ export function TopStatusBar() {
       {/* Speaking Pace */}
       {metrics && (
         <>
-          <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+          <div className="h-8 w-px bg-muted" />
           <div className="flex items-center gap-2">
-            <Gauge className="w-4 h-4 text-slate-500" />
+            <Gauge className="w-4 h-4 text-muted-foreground" />
             <span className={cn(
               'text-lg font-bold',
-              metrics.pace > 180 ? 'text-amber-500' : 'text-slate-600 dark:text-slate-400'
+              metrics.pace > 180 ? 'text-amber-500' : 'text-muted-foreground'
             )}>
               {metrics.pace}
             </span>
-            <span className="text-sm text-slate-500">WPM</span>
+            <span className="text-sm text-muted-foreground">WPM</span>
           </div>
         </>
       )}
@@ -148,7 +148,7 @@ export function TopStatusBar() {
       {/* Health Score */}
       {isCallActive && (
         <>
-          <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+          <div className="h-8 w-px bg-muted" />
           <Badge
             variant={healthScore >= 70 ? 'default' : healthScore >= 50 ? 'secondary' : 'destructive'}
             className="text-sm px-3 py-1"

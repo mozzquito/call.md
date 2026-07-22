@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 function MeetingIcon() {
   return (
     <svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="50" height="50" rx="12" fill="#EC5B16" />
+      <rect width="50" height="50" rx="12" fill="hsl(var(--primary))" />
       <path
         d="M17 18h16v14H17V18z"
         stroke="white"
@@ -88,10 +88,10 @@ export function InfoStep({
       <div className="flex flex-col items-center gap-[16px] mb-[32px]">
         <MeetingIcon />
         <div className="flex flex-col items-center gap-[8px]">
-          <h1 className="text-[22px] font-semibold text-black text-center tracking-[-0.44px] leading-[33px]">
+          <h1 className="text-[22px] font-semibold text-foreground text-center tracking-[-0.44px] leading-[33px]">
             Meeting Details
           </h1>
-          <p className="text-[14px] font-normal text-[#464646] text-center leading-[21px]">
+          <p className="text-[14px] font-normal text-muted-foreground text-center leading-[21px]">
             Tell us about your meeting so we can prepare better
           </p>
         </div>
@@ -101,7 +101,7 @@ export function InfoStep({
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-[20px]">
         {/* Meeting Name */}
         <div className="flex flex-col gap-[8px]">
-          <label htmlFor="meeting-name" className="text-[14px] font-medium text-[#141420]">
+          <label htmlFor="meeting-name" className="text-[14px] font-medium text-foreground">
             Meeting Name
           </label>
           <input
@@ -112,13 +112,13 @@ export function InfoStep({
             onChange={(e) => setName(e.target.value)}
             disabled={isDisabled}
             autoFocus
-            className="w-full px-[16px] py-[14px] bg-white border border-[#e0e0e8] rounded-[12px] text-[14px] text-black placeholder:text-[#969696] focus:outline-none focus:border-[#ec5b16] focus:ring-1 focus:ring-[#ec5b16] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full px-[16px] py-[14px] bg-card border border-input rounded-[12px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           />
         </div>
 
         {/* Description */}
         <div className="flex flex-col gap-[8px]">
-          <label htmlFor="meeting-description" className="text-[14px] font-medium text-[#141420]">
+          <label htmlFor="meeting-description" className="text-[14px] font-medium text-foreground">
             Description
           </label>
           <textarea
@@ -128,9 +128,9 @@ export function InfoStep({
             onChange={(e) => setDescription(e.target.value)}
             disabled={isDisabled}
             rows={4}
-            className="w-full px-[16px] py-[14px] bg-white border border-[#e0e0e8] rounded-[12px] text-[14px] text-black placeholder:text-[#969696] focus:outline-none focus:border-[#ec5b16] focus:ring-1 focus:ring-[#ec5b16] disabled:opacity-50 disabled:cursor-not-allowed transition-colors resize-none"
+            className="w-full px-[16px] py-[14px] bg-card border border-input rounded-[12px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors resize-none"
           />
-          <p className="text-[12px] text-[#969696]">
+          <p className="text-[12px] text-muted-foreground">
             {description.length < 10
               ? `At least ${10 - description.length} more characters needed`
               : 'Good description!'}
@@ -145,7 +145,7 @@ export function InfoStep({
               type="button"
               onClick={onBack}
               disabled={isDisabled}
-              className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-white border border-[#e0e0e8] rounded-[12px] text-[14px] font-semibold text-[#464646] hover:bg-[#f7f7f7] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-card border border-input rounded-[12px] text-[14px] font-semibold text-muted-foreground hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ArrowLeftIcon />
               Back
@@ -153,7 +153,7 @@ export function InfoStep({
             <button
               type="submit"
               disabled={!canContinue || isDisabled}
-              className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-[#ff4000] hover:bg-[#e63900] rounded-[12px] text-[14px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]"
+              className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-primary hover:bg-primary/90 rounded-[12px] text-[14px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]"
             >
               {isGenerating ? (
                 <>
@@ -177,7 +177,7 @@ export function InfoStep({
               onSkip(name.trim(), description.trim());
             }}
             disabled={isDisabled}
-            className="w-full flex items-center justify-center gap-[6px] px-[20px] py-[12px] bg-transparent border border-dashed border-[#c0c0c8] rounded-[12px] text-[14px] font-medium text-[#464646] hover:border-[#ec5b16] hover:text-[#ec5b16] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex items-center justify-center gap-[6px] px-[20px] py-[12px] bg-transparent border border-dashed border-input rounded-[12px] text-[14px] font-medium text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isSkipping ? (
               <>

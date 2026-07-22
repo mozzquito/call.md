@@ -23,12 +23,12 @@ function LightbulbIcon() {
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M10 2.5C6.54822 2.5 3.75 5.29822 3.75 8.75C3.75 10.9196 4.86607 12.8304 6.5625 13.9062V15.625C6.5625 16.3154 7.12214 16.875 7.8125 16.875H12.1875C12.8779 16.875 13.4375 16.3154 13.4375 15.625V13.9062C15.1339 12.8304 16.25 10.9196 16.25 8.75C16.25 5.29822 13.4518 2.5 10 2.5Z"
-        stroke="#EC5B16"
+        stroke="hsl(var(--primary))"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M7.5 17.5H12.5" stroke="#EC5B16" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7.5 17.5H12.5" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -39,7 +39,7 @@ function SayThisIcon() {
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M17.5 9.58333C17.5029 10.6832 17.2459 11.7682 16.75 12.75C16.162 13.9265 15.2581 14.916 14.1395 15.6077C13.021 16.2995 11.7319 16.6661 10.4167 16.6667C9.31678 16.6695 8.23176 16.4126 7.25 15.9167L2.5 17.5L4.08333 12.75C3.58744 11.7682 3.33047 10.6832 3.33333 9.58333C3.33393 8.26813 3.70051 6.97905 4.39227 5.86045C5.08402 4.74186 6.07355 3.83797 7.25 3.25C8.23176 2.75411 9.31678 2.49713 10.4167 2.5H10.8333C12.5703 2.59583 14.2109 3.32899 15.4409 4.55905C16.671 5.7891 17.4042 7.42973 17.5 9.16667V9.58333Z"
-        stroke="#EC5B16"
+        stroke="hsl(var(--primary))"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -117,13 +117,13 @@ interface InsightItemProps {
 
 function InsightItem({ text, checked, onToggle, variant }: InsightItemProps) {
   const isSay = variant === 'say';
-  const bgColor = isSay ? 'bg-[#fff5ec]' : 'bg-[#d8e6fd]';
-  const borderColor = isSay ? 'border-[rgba(236,91,22,0.2)]' : 'border-[rgba(59,130,246,0.2)]';
+  const bgColor = isSay ? 'bg-accent' : 'bg-blue-100 dark:bg-blue-950/30';
+  const borderColor = isSay ? 'border-primary/20' : 'border-[rgba(59,130,246,0.2)]';
   const checkboxBg = checked
     ? isSay
-      ? 'bg-[#ec5b16] border-[#ec5b16]'
-      : 'bg-[#3b82f6] border-[#3b82f6]'
-    : 'bg-white border-[#969696]';
+      ? 'bg-primary border-primary'
+      : 'bg-blue-500 border-blue-500'
+    : 'bg-card border-muted-foreground';
 
   return (
     <div
@@ -135,7 +135,7 @@ function InsightItem({ text, checked, onToggle, variant }: InsightItemProps) {
       >
         {checked && <CheckIcon />}
       </div>
-      <p className="flex-1 text-[14px] text-black leading-[22px]">{text}</p>
+      <p className="flex-1 text-[14px] text-foreground leading-[22px]">{text}</p>
     </div>
   );
 }
@@ -164,17 +164,17 @@ function InsightSection({
   className = '',
 }: InsightSectionProps) {
   return (
-    <div className={`border border-[#efefef] rounded-[12px] overflow-hidden flex flex-col ${className}`}>
+    <div className={`border border-border rounded-[12px] overflow-hidden flex flex-col ${className}`}>
       {/* Header */}
-      <div className="bg-[#f7f7f7] border-b border-[#efefef] px-[16px] py-[10px] flex items-center gap-[8px] shrink-0">
+      <div className="bg-secondary border-b border-border px-[16px] py-[10px] flex items-center gap-[8px] shrink-0">
         {icon}
-        <span className="font-medium text-[15px] text-black">{title}</span>
+        <span className="font-medium text-[15px] text-foreground">{title}</span>
       </div>
 
       {/* Content */}
       <div
         ref={scrollRef}
-        className="bg-white p-[16px] flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="bg-card p-[16px] flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {items.length > 0 ? (
           <div className="flex flex-col gap-[10px]">
@@ -190,7 +190,7 @@ function InsightSection({
           </div>
         ) : (
           <div className="flex items-center justify-center py-[20px]">
-            <p className="text-[13px] text-[#969696] text-center">{emptyText}</p>
+            <p className="text-[13px] text-muted-foreground text-center">{emptyText}</p>
           </div>
         )}
       </div>
@@ -340,7 +340,7 @@ export function LiveAssistPanel() {
       {/* Header */}
       <div className="flex items-center gap-[8px] shrink-0">
         <LightbulbIcon />
-        <h2 className="flex-1 font-semibold text-[18px] text-black tracking-[0.09px]">
+        <h2 className="flex-1 font-semibold text-[18px] text-foreground tracking-[0.09px]">
           Live Assist
         </h2>
         {showVisualAnalysisButton && (
@@ -349,8 +349,8 @@ export function LiveAssistPanel() {
             disabled={isVisualAnalysisLoading}
             className={`flex items-center gap-[4px] px-[20px] py-[12px] rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)] transition-colors ${
               isVisualAnalysisLoading
-                ? 'bg-[#ff4000]/70 cursor-not-allowed'
-                : 'bg-[#ff4000] hover:bg-[#e63900]'
+                ? 'bg-primary/70 cursor-not-allowed'
+                : 'bg-primary hover:bg-primary/90'
             }`}
           >
             {isVisualAnalysisLoading ? (
@@ -395,25 +395,25 @@ export function LiveAssistPanel() {
 
         {/* MCP Findings Section - only show if MCP servers are connected */}
         {connectedServerCount > 0 && (
-          <div className="border border-[#efefef] rounded-[12px] overflow-hidden flex-1 min-h-0 flex flex-col">
+          <div className="border border-border rounded-[12px] overflow-hidden flex-1 min-h-0 flex flex-col">
             {/* MCP Findings Header */}
-            <div className="bg-[#f7f7f7] border-b border-[#efefef] px-[16px] py-[10px] shrink-0">
-              <span className="font-medium text-[14px] text-black tracking-[0.07px]">
+            <div className="bg-secondary border-b border-border px-[16px] py-[10px] shrink-0">
+              <span className="font-medium text-[14px] text-foreground tracking-[0.07px]">
                 MCP Findings
               </span>
             </div>
 
             {/* MCP Findings Content */}
-            <div className="bg-white p-[16px] flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="bg-card p-[16px] flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {mcpFindings ? (
-                <div className="prose prose-sm max-w-none text-[14px] text-black leading-[22px]">
+                <div className="prose prose-sm max-w-none text-[14px] text-foreground leading-[22px]">
                   <ReactMarkdown
                     components={{
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                       a: ({ href, children }) => (
                         <a
                           href={href}
-                          className="text-[#ec5b16] underline decoration-solid"
+                          className="text-primary underline decoration-solid"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -429,7 +429,7 @@ export function LiveAssistPanel() {
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-[14px]">
-                  <p className="text-[13px] text-[#969696] text-center">
+                  <p className="text-[13px] text-muted-foreground text-center">
                     See live results triggered by conversation keywords
                   </p>
                 </div>

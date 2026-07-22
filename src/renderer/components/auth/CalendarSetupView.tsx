@@ -13,7 +13,7 @@ import { useConfigStore } from '../../stores/config.store';
 // Calendar icon component
 function CalendarIcon() {
   return (
-    <div className="w-[72px] h-[72px] rounded-[20px] bg-[rgba(255,64,0,0.1)] border border-[rgba(236,91,22,0.13)] flex items-center justify-center">
+    <div className="w-[72px] h-[72px] rounded-[20px] bg-primary/10 border border-primary/20 flex items-center justify-center">
       <svg
         width="36"
         height="36"
@@ -21,15 +21,15 @@ function CalendarIcon() {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <rect x="4" y="8" width="28" height="24" rx="4" stroke="#EC5B16" strokeWidth="2" />
-        <path d="M4 14H32" stroke="#EC5B16" strokeWidth="2" />
-        <path d="M12 4V10" stroke="#EC5B16" strokeWidth="2" strokeLinecap="round" />
-        <path d="M24 4V10" stroke="#EC5B16" strokeWidth="2" strokeLinecap="round" />
-        <rect x="10" y="18" width="4" height="4" rx="1" fill="#EC5B16" />
-        <rect x="16" y="18" width="4" height="4" rx="1" fill="#EC5B16" />
-        <rect x="22" y="18" width="4" height="4" rx="1" fill="#EC5B16" />
-        <rect x="10" y="24" width="4" height="4" rx="1" fill="#EC5B16" />
-        <rect x="16" y="24" width="4" height="4" rx="1" fill="#EC5B16" />
+        <rect x="4" y="8" width="28" height="24" rx="4" stroke="hsl(var(--primary))" strokeWidth="2" />
+        <path d="M4 14H32" stroke="hsl(var(--primary))" strokeWidth="2" />
+        <path d="M12 4V10" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" />
+        <path d="M24 4V10" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" />
+        <rect x="10" y="18" width="4" height="4" rx="1" fill="hsl(var(--primary))" />
+        <rect x="16" y="18" width="4" height="4" rx="1" fill="hsl(var(--primary))" />
+        <rect x="22" y="18" width="4" height="4" rx="1" fill="hsl(var(--primary))" />
+        <rect x="10" y="24" width="4" height="4" rx="1" fill="hsl(var(--primary))" />
+        <rect x="16" y="24" width="4" height="4" rx="1" fill="hsl(var(--primary))" />
       </svg>
     </div>
   );
@@ -119,13 +119,13 @@ export function CalendarSetupView({ onConnected, onSkip }: CalendarSetupViewProp
   ];
 
   return (
-    <div className="h-full w-full bg-[#f8f8fa] flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="h-full w-full bg-background flex flex-col items-center justify-center relative overflow-hidden">
       {/* Orange gradient glow */}
       <div
         className="absolute top-[-30%] left-1/2 -translate-x-1/2 w-[600px] h-[567px] rounded-[300px] pointer-events-none"
         style={{
           background:
-            'radial-gradient(circle at center, rgba(236,91,22,0.08) 0%, rgba(236,91,22,0) 70%)',
+            'radial-gradient(circle at center, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0) 70%)',
         }}
       />
 
@@ -140,30 +140,30 @@ export function CalendarSetupView({ onConnected, onSkip }: CalendarSetupViewProp
         <div className="flex flex-col items-center gap-[20px] mb-[32px]">
           <CalendarIcon />
           <div className="flex flex-col items-center gap-[9px] max-w-[320px]">
-            <h1 className="text-[22px] font-semibold text-black text-center tracking-[-0.44px] leading-[33px]">
+            <h1 className="text-[22px] font-semibold text-foreground text-center tracking-[-0.44px] leading-[33px]">
               Connect your calendar
             </h1>
-            <p className="text-[14px] font-normal text-[#464646] text-center leading-[22.4px]">
+            <p className="text-[14px] font-normal text-muted-foreground text-center leading-[22.4px]">
               Call.md uses your Google Calendar to detect upcoming meetings and ask if you'd like to record them.
             </p>
           </div>
         </div>
 
         {/* Features card */}
-        <div className="w-full bg-white border border-[#e0e0e8] rounded-[12px] shadow-[0px_1px_4px_0px_rgba(0,0,0,0.04)] px-[21px] py-[17px] mb-[16px]">
+        <div className="w-full bg-card border border-input rounded-[12px] shadow-[0px_1px_4px_0px_rgba(0,0,0,0.04)] px-[21px] py-[17px] mb-[16px]">
           <div className="flex flex-col gap-[12px]">
             {features.map((feature, index) => (
               <div key={index} className="flex items-center gap-[10px]">
                 <CheckIcon />
-                <span className="text-[13px] text-[#464646] leading-[19.5px]">{feature}</span>
+                <span className="text-[13px] text-muted-foreground leading-[19.5px]">{feature}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Notifications tip */}
-        <div className="w-full flex items-start gap-[10px] px-[14px] py-[12px] bg-[#f8f8fa] rounded-[12px] border border-[#efefef] mb-[32px]">
-          <p className="text-[13px] text-[#666666] leading-[18px]">
+        <div className="w-full flex items-start gap-[10px] px-[14px] py-[12px] bg-background rounded-[12px] border border-border mb-[32px]">
+          <p className="text-[13px] text-muted-foreground leading-[18px]">
             <span className="font-medium">Tip:</span> Make sure notifications are enabled for Call.md in{' '}
             <span className="font-medium">System Settings → Notifications</span> to receive meeting reminders.
           </p>
@@ -182,12 +182,12 @@ export function CalendarSetupView({ onConnected, onSkip }: CalendarSetupViewProp
           <button
             onClick={handleConnect}
             disabled={isConnecting || isConnected}
-            className="w-full bg-white border border-[#d0d0d8] hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed rounded-[12px] px-[25px] py-[13px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)] flex items-center justify-center gap-[8px] transition-colors"
+            className="w-full bg-card border border-input hover:bg-secondary disabled:opacity-60 disabled:cursor-not-allowed rounded-[12px] px-[25px] py-[13px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)] flex items-center justify-center gap-[8px] transition-colors"
           >
             {isConnecting ? (
               <>
-                <Loader2 className="w-[18px] h-[18px] text-[#464646] animate-spin" />
-                <span className="text-[14px] font-medium text-black tracking-[0.14px] leading-[21px]">
+                <Loader2 className="w-[18px] h-[18px] text-muted-foreground animate-spin" />
+                <span className="text-[14px] font-medium text-foreground tracking-[0.14px] leading-[21px]">
                   Connecting...
                 </span>
               </>
@@ -201,7 +201,7 @@ export function CalendarSetupView({ onConnected, onSkip }: CalendarSetupViewProp
             ) : (
               <>
                 <GoogleLogo />
-                <span className="text-[14px] font-medium text-black tracking-[0.14px] leading-[21px]">
+                <span className="text-[14px] font-medium text-foreground tracking-[0.14px] leading-[21px]">
                   Connect Google Calendar
                 </span>
               </>
@@ -214,7 +214,7 @@ export function CalendarSetupView({ onConnected, onSkip }: CalendarSetupViewProp
             disabled={isConnecting || isConnected}
             className="w-full flex items-center justify-center px-[16px] py-[12px] rounded-[10px] hover:bg-black/5 transition-colors disabled:opacity-50"
           >
-            <span className="text-[13px] font-medium text-[#464646] tracking-[0.13px] leading-[19.5px]">
+            <span className="text-[13px] font-medium text-muted-foreground tracking-[0.13px] leading-[19.5px]">
               I'll do it later
             </span>
           </button>

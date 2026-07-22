@@ -3,8 +3,12 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { trpc, createTrpcClient, getApiPort } from './api/trpc';
 import { useConfigStore } from './stores/config.store';
+import { initializeTheme } from './stores/theme.store';
 import { App } from './App';
 import './styles/globals.css';
+
+const cleanupTheme = initializeTheme();
+window.addEventListener('beforeunload', cleanupTheme, { once: true });
 
 function TrpcProvider({ children, port }: { children: React.ReactNode; port: number }) {
   const configStore = useConfigStore();

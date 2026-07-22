@@ -30,7 +30,7 @@ function CheckIcon() {
 function MessageIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14 10.667a1.333 1.333 0 01-1.333 1.333H4L2 14V3.333A1.333 1.333 0 013.333 2h9.334A1.333 1.333 0 0114 3.333v7.334z" stroke="#969696" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 10.667a1.333 1.333 0 01-1.333 1.333H4L2 14V3.333A1.333 1.333 0 013.333 2h9.334A1.333 1.333 0 0114 3.333v7.334z" stroke="hsl(var(--muted-foreground))" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -122,7 +122,7 @@ export function QuestionsStep({
   if (!current) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#969696]" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -136,10 +136,10 @@ export function QuestionsStep({
             key={idx}
             className={`h-[6px] rounded-full transition-all duration-200 ${
               idx === currentQuestion
-                ? 'w-[24px] bg-[#ec5b16]'
+                ? 'w-[24px] bg-primary'
                 : idx < currentQuestion
-                ? 'w-[6px] bg-[#ec5b16]/60'
-                : 'w-[6px] bg-[#e0e0e8]'
+                ? 'w-[6px] bg-primary/60'
+                : 'w-[6px] bg-muted'
             }`}
           />
         ))}
@@ -147,10 +147,10 @@ export function QuestionsStep({
 
       {/* Question header */}
       <div className="flex flex-col items-center gap-[8px] mb-[24px] text-center">
-        <p className="text-[12px] font-medium text-[#969696] uppercase tracking-[0.5px]">
+        <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-[0.5px]">
           Question {currentQuestion + 1} of {questions.length} (select all that apply)
         </p>
-        <h2 className="text-[18px] font-semibold text-black tracking-[-0.17px] leading-[27px]">
+        <h2 className="text-[18px] font-semibold text-foreground tracking-[-0.17px] leading-[27px]">
           {current.question}
         </h2>
       </div>
@@ -167,20 +167,20 @@ export function QuestionsStep({
               disabled={isDisabled}
               className={`w-full flex items-center gap-[12px] p-[16px] rounded-[12px] border-2 text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                 selected
-                  ? 'border-[#ec5b16] bg-[#fff5ec]'
-                  : 'border-[#e0e0e8] bg-white hover:border-[#ec5b16]/50 hover:bg-[#fff5ec]/30'
+                  ? 'border-primary bg-accent'
+                  : 'border-input bg-card hover:border-primary/50 hover:bg-accent/30'
               }`}
             >
               <div
                 className={`w-[20px] h-[20px] rounded-[4px] flex items-center justify-center flex-shrink-0 transition-all ${
                   selected
-                    ? 'bg-[#ec5b16] border-2 border-[#ec5b16]'
-                    : 'border-2 border-[#c0c0c8]'
+                    ? 'bg-primary border-2 border-primary'
+                    : 'border-2 border-input'
                 }`}
               >
                 {selected && <CheckIcon />}
               </div>
-              <span className="text-[14px] text-[#141420]">{option}</span>
+              <span className="text-[14px] text-foreground">{option}</span>
             </button>
           );
         })}
@@ -192,12 +192,12 @@ export function QuestionsStep({
           disabled={isDisabled}
           className={`w-full flex items-center gap-[12px] p-[16px] rounded-[12px] border-2 border-dashed text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
             showCustomInput[currentQuestion]
-              ? 'border-[#ec5b16] bg-[#fff5ec]'
-              : 'border-[#e0e0e8] bg-white hover:border-[#ec5b16]/50 hover:bg-[#fff5ec]/30'
+              ? 'border-primary bg-accent'
+              : 'border-input bg-card hover:border-primary/50 hover:bg-accent/30'
           }`}
         >
           <MessageIcon />
-          <span className="text-[14px] text-[#969696]">Other (type your answer)</span>
+          <span className="text-[14px] text-muted-foreground">Other (type your answer)</span>
         </button>
 
         {/* Custom input */}
@@ -210,7 +210,7 @@ export function QuestionsStep({
               onChange={(e) => handleCustomInputChange(e.target.value)}
               disabled={isDisabled}
               autoFocus
-              className="w-full px-[16px] py-[14px] bg-white border border-[#e0e0e8] rounded-[12px] text-[14px] text-black placeholder:text-[#969696] focus:outline-none focus:border-[#ec5b16] focus:ring-1 focus:ring-[#ec5b16] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full px-[16px] py-[14px] bg-card border border-input rounded-[12px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             />
           </div>
         )}
@@ -224,7 +224,7 @@ export function QuestionsStep({
             type="button"
             onClick={handlePrev}
             disabled={isDisabled}
-            className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-white border border-[#e0e0e8] rounded-[12px] text-[14px] font-semibold text-[#464646] hover:bg-[#f7f7f7] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-card border border-input rounded-[12px] text-[14px] font-semibold text-muted-foreground hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ArrowLeftIcon />
             {currentQuestion === 0 ? 'Back' : 'Previous'}
@@ -233,7 +233,7 @@ export function QuestionsStep({
             type="button"
             onClick={handleNext}
             disabled={!currentHasAnswer || isDisabled}
-            className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-[#ff4000] hover:bg-[#e63900] rounded-[12px] text-[14px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]"
+            className="flex-1 flex items-center justify-center gap-[6px] px-[20px] py-[14px] bg-primary hover:bg-primary/90 rounded-[12px] text-[14px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]"
           >
             {isLastQuestion ? (
               isGenerating ? (
@@ -261,7 +261,7 @@ export function QuestionsStep({
           type="button"
           onClick={() => onSkip()}
           disabled={isDisabled}
-          className="w-full flex items-center justify-center gap-[6px] px-[20px] py-[12px] bg-transparent border border-dashed border-[#c0c0c8] rounded-[12px] text-[14px] font-medium text-[#464646] hover:border-[#ec5b16] hover:text-[#ec5b16] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-[6px] px-[20px] py-[12px] bg-transparent border border-dashed border-input rounded-[12px] text-[14px] font-medium text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSkipping ? (
             <>

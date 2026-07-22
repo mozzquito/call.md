@@ -23,6 +23,7 @@
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
     "lint": "eslint src --ext .ts,.tsx",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"

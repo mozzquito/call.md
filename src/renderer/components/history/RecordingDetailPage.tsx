@@ -61,19 +61,19 @@ export function RecordingDetailPage({ recordingId, onBack }: RecordingDetailPage
 
   if (isLoading) {
     return (
-      <div className="bg-[#f7f7f7] h-full flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-2 border-[#ec5b16] border-t-transparent rounded-full" />
+      <div className="bg-secondary h-full flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
 
   if (!recording) {
     return (
-      <div className="bg-[#f7f7f7] h-full flex flex-col items-center justify-center gap-4">
-        <p className="text-[#464646]">Recording not found</p>
+      <div className="bg-secondary h-full flex flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Recording not found</p>
         <button
           onClick={onBack}
-          className="text-[#ec5b16] hover:underline"
+          className="text-primary hover:underline"
         >
           Go back
         </button>
@@ -85,7 +85,7 @@ export function RecordingDetailPage({ recordingId, onBack }: RecordingDetailPage
   const isVideoReady = recording.status === 'available' && !!recording.playerUrl;
 
   return (
-    <div className="bg-[#f7f7f7] h-full flex flex-col pt-[10px] px-[10px]">
+    <div className="bg-secondary h-full flex flex-col pt-[10px] px-[10px]">
       {/* Header */}
       <Header
         title={title}
@@ -97,13 +97,13 @@ export function RecordingDetailPage({ recordingId, onBack }: RecordingDetailPage
       />
 
       {/* Main Content */}
-      <div className="flex-1 bg-white border border-[#efefef] rounded-[20px] p-[20px] pb-[40px] flex gap-[30px] overflow-hidden mb-[10px]">
+      <div className="flex-1 bg-card border border-border rounded-[20px] p-[20px] pb-[40px] flex gap-[30px] overflow-hidden mb-[10px]">
         {/* Left Panel - Meeting Insights (scrollable) */}
         <div className="flex-1 flex flex-col gap-[30px] min-w-0 overflow-y-auto pr-[10px]">
           {/* Section Header */}
           <div className="flex items-center gap-[4px]">
-            <Sparkles className="h-5 w-5 text-[#ec5b16]" />
-            <h2 className="text-[18px] font-semibold text-black tracking-[0.09px]">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="text-[18px] font-semibold text-foreground tracking-[0.09px]">
               Meeting Insights
             </h2>
           </div>
@@ -202,30 +202,30 @@ function Header({ title, recordingId, createdAt, duration, playerUrl, onBack }: 
         <div className="pt-[2px]">
           <button
             onClick={onBack}
-            className="w-[28px] h-[28px] bg-white border border-black/20 rounded-[6.5px] flex items-center justify-center hover:bg-gray-50 transition-colors"
+            className="w-[28px] h-[28px] bg-card border border-input rounded-[6.5px] flex items-center justify-center hover:bg-secondary transition-colors"
           >
-            <ArrowLeft className="h-[15px] w-[15px] text-black" />
+            <ArrowLeft className="h-[15px] w-[15px] text-foreground" />
           </button>
         </div>
 
         {/* Title & Metadata */}
         <div className="flex-1 flex flex-col gap-[10px]">
-          <h1 className="text-[24px] font-semibold text-black tracking-[0.12px]">
+          <h1 className="text-[24px] font-semibold text-foreground tracking-[0.12px]">
             {title}
           </h1>
           <div className="flex items-center gap-[20px]">
             {/* Date */}
             <div className="flex items-center gap-[4px]">
-              <Calendar className="h-4 w-4 text-[#969696]" />
-              <span className="text-[14px] text-[#464646] tracking-[0.07px]">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[14px] text-muted-foreground tracking-[0.07px]">
                 {formatDate(createdAt)}
               </span>
             </div>
             {/* Duration */}
             {duration && (
               <div className="flex items-center gap-[8px]">
-                <Clock className="h-4 w-4 text-[#969696]" />
-                <span className="text-[14px] text-[#464646] tracking-[0.07px]">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-[14px] text-muted-foreground tracking-[0.07px]">
                   {formatDurationMinutes(duration)}
                 </span>
               </div>
@@ -244,32 +244,32 @@ function Header({ title, recordingId, createdAt, duration, playerUrl, onBack }: 
             className={cn(
               "flex items-center gap-[6px] border rounded-[12px] px-[16px] py-[12px] shadow-[0px_1.27px_15.27px_0px_rgba(0,0,0,0.05)] transition-colors",
               exportOpen
-                ? "bg-[#fff5ec] border-[#ffcfa5]"
-                : "bg-white border-[#efefef] hover:bg-[#efefef] hover:border-[#969696]"
+                ? "bg-accent border-primary/30"
+                : "bg-card border-border hover:bg-muted hover:border-muted-foreground"
             )}
           >
             {downloadingVideo ? (
-              <Loader2 className="h-5 w-5 text-black animate-spin" />
+              <Loader2 className="h-5 w-5 text-foreground animate-spin" />
             ) : (
-              <Upload className="h-5 w-5 text-black" />
+              <Upload className="h-5 w-5 text-foreground" />
             )}
-            <span className="text-[14px] font-semibold text-black tracking-[-0.28px]">
+            <span className="text-[14px] font-semibold text-foreground tracking-[-0.28px]">
               Export
             </span>
-            <ChevronDown className="h-5 w-5 text-black" />
+            <ChevronDown className="h-5 w-5 text-foreground" />
           </button>
 
           {/* Dropdown Menu */}
           {exportOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
-              <div className="absolute right-0 top-full mt-2 z-20 bg-white border border-[#efefef] rounded-[12px] shadow-[0px_17px_17px_0px_rgba(0,0,0,0.12),0px_4px_9px_0px_rgba(0,0,0,0.14)] p-[8px] min-w-[180px]">
+              <div className="absolute right-0 top-full mt-2 z-20 bg-card border border-border rounded-[12px] shadow-[0px_17px_17px_0px_rgba(0,0,0,0.12),0px_4px_9px_0px_rgba(0,0,0,0.14)] p-[8px] min-w-[180px]">
                 <button
                   onClick={handleDownloadVideo}
-                  className="w-full flex items-center gap-[6px] px-[10px] py-[8px] rounded-[10px] hover:bg-[#efefef] transition-colors"
+                  className="w-full flex items-center gap-[6px] px-[10px] py-[8px] rounded-[10px] hover:bg-muted transition-colors"
                 >
-                  <Video className="h-5 w-5 text-black" />
-                  <span className="text-[13px] font-medium text-black">Video</span>
+                  <Video className="h-5 w-5 text-foreground" />
+                  <span className="text-[13px] font-medium text-foreground">Video</span>
                 </button>
               </div>
             </>
@@ -282,9 +282,9 @@ function Header({ title, recordingId, createdAt, duration, playerUrl, onBack }: 
           disabled={!playerUrl || copyState !== 'idle'}
           className={cn(
             "flex items-center gap-[4px] rounded-[12px] px-[14px] py-[12px] shadow-[0px_1.27px_15.27px_0px_rgba(0,0,0,0.05)] transition-colors",
-            copyState === 'copied' ? "bg-[#007657]" :
-            copyState === 'copying' ? "bg-[#ff7e32]" :
-            "bg-[#ff4000] hover:bg-[#cc2b02]",
+            copyState === 'copied' ? "bg-emerald-700" :
+            copyState === 'copying' ? "bg-primary/80" :
+            "bg-primary hover:bg-primary/90",
             !playerUrl && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -322,23 +322,23 @@ function SummaryCard({ summary }: SummaryCardProps) {
   };
 
   return (
-    <div className="bg-[#fff5ec] border border-[#ffe9d3] rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+    <div className="bg-accent border border-primary/20 rounded-[16px] p-[20px] flex flex-col gap-[16px]">
       {/* Header */}
       <div className="flex items-center gap-[8px]">
-        <FileText className="h-5 w-5 text-[#ec5b16]" />
-        <h3 className="flex-1 text-[16px] font-medium text-black tracking-[0.08px]">
+        <FileText className="h-5 w-5 text-primary" />
+        <h3 className="flex-1 text-[16px] font-medium text-foreground tracking-[0.08px]">
           Meeting Summary
         </h3>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-[4px] px-[10px] py-[6px] rounded-[8px] text-[12px] font-medium text-[#ec5b16] hover:bg-[#ffe9d3] transition-colors"
+          className="flex items-center gap-[4px] px-[10px] py-[6px] rounded-[8px] text-[12px] font-medium text-primary hover:bg-accent transition-colors"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
       {/* Content */}
-      <p className="text-[14px] text-[#2d2d2d] leading-[20px] tracking-[0.07px]">
+      <p className="text-[14px] text-foreground leading-[20px] tracking-[0.07px]">
         {summary}
       </p>
     </div>
@@ -368,18 +368,18 @@ function KeyPointsCard({ keyPoints, expanded, onToggle }: KeyPointsCardProps) {
 
   return (
     <div className={cn(
-      "bg-[#fff5ec] border border-[#ffe9d3] rounded-[16px] p-[20px] flex flex-col gap-[16px] relative overflow-hidden",
+      "bg-accent border border-primary/20 rounded-[16px] p-[20px] flex flex-col gap-[16px] relative overflow-hidden",
       !expanded && "max-h-[200px]"
     )}>
       {/* Header */}
       <div className="flex items-center gap-[8px]">
-        <List className="h-5 w-5 text-[#ec5b16]" />
-        <h3 className="flex-1 text-[16px] font-medium text-black tracking-[0.08px]">
+        <List className="h-5 w-5 text-primary" />
+        <h3 className="flex-1 text-[16px] font-medium text-foreground tracking-[0.08px]">
           Key Points
         </h3>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-[4px] px-[10px] py-[6px] rounded-[8px] text-[12px] font-medium text-[#ec5b16] hover:bg-[#ffe9d3] transition-colors z-20"
+          className="flex items-center gap-[4px] px-[10px] py-[6px] rounded-[8px] text-[12px] font-medium text-primary hover:bg-accent transition-colors z-20"
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? 'Copied!' : 'Copy'}
@@ -387,7 +387,7 @@ function KeyPointsCard({ keyPoints, expanded, onToggle }: KeyPointsCardProps) {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col text-[14px] text-[#2d2d2d]">
+      <div className="flex flex-col text-[14px] text-foreground">
         {keyPoints.map((kp, idx) => (
           <div key={idx} className="mb-2">
             <p className="font-semibold leading-[24px]">
@@ -407,15 +407,15 @@ function KeyPointsCard({ keyPoints, expanded, onToggle }: KeyPointsCardProps) {
       {/* Gradient Overlay & See More Button */}
       {!expanded && (
         <>
-          <div className="absolute bottom-0 left-0 right-0 h-[52px] bg-gradient-to-t from-[#fff5ec] to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 h-[52px] bg-gradient-to-t from-accent to-transparent pointer-events-none" />
           <button
             onClick={onToggle}
-            className="absolute bottom-[6px] left-1/2 -translate-x-1/2 flex items-center gap-px bg-white border border-[#ffcfa5] rounded-full px-[12px] py-[8px] hover:bg-gray-50 transition-colors"
+            className="absolute bottom-[6px] left-1/2 -translate-x-1/2 flex items-center gap-px bg-card border border-primary/30 rounded-full px-[12px] py-[8px] hover:bg-secondary transition-colors"
           >
-            <span className="text-[13px] font-medium text-[#1f2937] tracking-[0.065px] px-[4px]">
+            <span className="text-[13px] font-medium text-foreground tracking-[0.065px] px-[4px]">
               See more
             </span>
-            <ChevronDown className="h-4 w-4 text-[#1f2937]" />
+            <ChevronDown className="h-4 w-4 text-foreground" />
           </button>
         </>
       )}
@@ -458,18 +458,18 @@ function ActionItemsCard({ recordingId, checklist, completedIndices }: ActionIte
   const isEmpty = !checklist || checklist.length === 0;
 
   return (
-    <div className="bg-[#f7f7f7] border border-[#efefef] rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+    <div className="bg-secondary border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px]">
       {/* Header */}
       <div className="flex items-center gap-[8px]">
-        <CheckSquare className="h-5 w-5 text-[#ec5b16]" />
-        <h3 className="text-[16px] font-medium text-black tracking-[0.08px]">
+        <CheckSquare className="h-5 w-5 text-primary" />
+        <h3 className="text-[16px] font-medium text-foreground tracking-[0.08px]">
           Action Items
         </h3>
       </div>
 
       {/* Content */}
       {isEmpty ? (
-        <p className="text-[14px] text-[#969696] italic">
+        <p className="text-[14px] text-muted-foreground italic">
           No post meeting agenda detected
         </p>
       ) : (
@@ -480,18 +480,18 @@ function ActionItemsCard({ recordingId, checklist, completedIndices }: ActionIte
               <div
                 key={idx}
                 onClick={() => handleToggle(idx)}
-                className="bg-white border border-[#efefef] rounded-[8px] px-[16px] py-[12px] flex items-start gap-[12px] cursor-pointer hover:bg-gray-50 transition-colors"
+                className="bg-card border border-border rounded-[8px] px-[16px] py-[12px] flex items-start gap-[12px] cursor-pointer hover:bg-secondary transition-colors"
               >
                 {/* Checkbox */}
                 <div className={cn(
                   "w-4 h-4 shrink-0 rounded border flex items-center justify-center mt-[2px]",
-                  isChecked ? "bg-[#ec5b16] border-[#ec5b16]" : "border-[#ec5b16]"
+                  isChecked ? "bg-primary border-primary" : "border-primary"
                 )}>
                   {isChecked && <Check className="h-3 w-3 text-white" />}
                 </div>
                 <span className={cn(
                   "text-[14px] leading-[20px] tracking-[0.07px]",
-                  isChecked ? "text-[#969696] line-through" : "text-black"
+                  isChecked ? "text-muted-foreground line-through" : "text-foreground"
                 )}>
                   {item}
                 </span>
@@ -513,8 +513,8 @@ function VideoPlayerSection({ playerUrl, isReady }: VideoPlayerSectionProps) {
   const embedUrl = playerUrl?.replace('/watch', '/embed');
 
   return (
-    <div className="border border-[#efefef] rounded-[16px] px-[6px] py-[5px]">
-      <div className="aspect-video rounded-[16px] border border-black/10 overflow-hidden bg-gray-100">
+    <div className="border border-border rounded-[16px] px-[6px] py-[5px]">
+      <div className="aspect-video rounded-[16px] border border-border overflow-hidden bg-muted">
         {isReady && embedUrl ? (
           <iframe
             src={embedUrl}
@@ -523,8 +523,8 @@ function VideoPlayerSection({ playerUrl, isReady }: VideoPlayerSectionProps) {
             allowFullScreen
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-[#969696]">
-            <Loader2 className="h-8 w-8 animate-spin text-[#ec5b16]" />
+          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-[14px]">Loading the video...</p>
           </div>
         )}
@@ -558,7 +558,7 @@ function ChatWithVideoButton({ title, videoId, collectionId, disabled }: ChatWit
     >
       {/* Gradient Background */}
       <div
-        className="absolute inset-0 rounded-[32px] border-2 border-[#494949]"
+        className="absolute inset-0 rounded-[32px] border-2 border-neutral-600"
         style={{
           background: 'linear-gradient(260deg, rgb(0, 0, 0) 4.66%, rgb(30, 30, 30) 99.38%)',
         }}

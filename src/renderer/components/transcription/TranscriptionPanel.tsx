@@ -20,7 +20,7 @@ function SparkleIcon() {
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M10 2.5L11.5 7L16.25 8.125L12.5 11.25L13.125 16.25L10 13.75L6.875 16.25L7.5 11.25L3.75 8.125L8.5 7L10 2.5Z"
-        stroke="#EC5B16"
+        stroke="hsl(var(--primary))"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -51,28 +51,28 @@ function TranscriptMessage({ item }: TranscriptMessageProps) {
   return (
     <div className="flex flex-col gap-[8px]">
       {/* Speaker row */}
-      <div className="bg-[#f9fafb] rounded-[10px] px-[8px] py-[6px] flex items-center gap-[12px]">
+      <div className="bg-background rounded-[10px] px-[8px] py-[6px] flex items-center gap-[12px]">
         {/* Timestamp badge */}
         <div
           className={`px-[8px] py-[4px] rounded-[7px] ${
-            isMe ? 'bg-[#ffe9d3]' : 'bg-[rgba(45,140,255,0.2)]'
+            isMe ? 'bg-accent' : 'bg-blue-500/20'
           }`}
         >
           <span
             className={`font-semibold text-[13px] leading-[16px] ${
-              isMe ? 'text-[#ec5b16]' : 'text-[#2d8cff]'
+              isMe ? 'text-primary' : 'text-blue-500 dark:text-blue-400'
             }`}
           >
             {formatRelativeTime(item.timestamp)}
           </span>
         </div>
         {/* Speaker name */}
-        <span className="font-medium text-[13px] text-black leading-[16px]">
+        <span className="font-medium text-[13px] text-foreground leading-[16px]">
           {isMe ? 'You' : 'Them'}
         </span>
       </div>
       {/* Text content */}
-      <p className="text-[14px] text-black leading-[22px]">{item.text}</p>
+      <p className="text-[14px] text-foreground leading-[22px]">{item.text}</p>
     </div>
   );
 }
@@ -94,18 +94,18 @@ function VisualAnalysisEntry({ item }: VisualAnalysisEntryProps) {
   };
 
   return (
-    <div className="bg-[#eff6ff] border border-[#5095fb] rounded-[10px] p-[12px] flex flex-col gap-[12px]">
+    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-400 dark:border-blue-700 rounded-[10px] p-[12px] flex flex-col gap-[12px]">
       {/* Header row */}
       <div className="flex items-center gap-[12px]">
-        <div className="bg-white px-[8px] py-[4px] rounded-[7px]">
-          <span className="font-semibold text-[13px] text-[#5095fb] leading-[16px]">
+        <div className="bg-card px-[8px] py-[4px] rounded-[7px]">
+          <span className="font-semibold text-[13px] text-blue-600 dark:text-blue-400 leading-[16px]">
             {formatRelativeTime()}
           </span>
         </div>
-        <span className="font-medium text-[13px] text-black leading-[16px]">Visual Analysis</span>
+        <span className="font-medium text-[13px] text-foreground leading-[16px]">Visual Analysis</span>
       </div>
       {/* Content with markdown rendering */}
-      <div className="text-[14px] text-black leading-[24px] prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
+      <div className="text-[14px] text-foreground leading-[24px] prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0">
         <ReactMarkdown>{item.text}</ReactMarkdown>
       </div>
     </div>
@@ -123,26 +123,26 @@ function PendingMessage({ text, source }: PendingMessageProps) {
   return (
     <div className="flex flex-col gap-[8px] opacity-70">
       {/* Speaker row */}
-      <div className="bg-[#f9fafb] rounded-[10px] px-[8px] py-[6px] flex items-center gap-[12px]">
+      <div className="bg-background rounded-[10px] px-[8px] py-[6px] flex items-center gap-[12px]">
         <div
           className={`px-[8px] py-[4px] rounded-[7px] animate-pulse ${
-            isMe ? 'bg-[#ffe9d3]' : 'bg-[rgba(45,140,255,0.2)]'
+            isMe ? 'bg-accent' : 'bg-blue-500/20'
           }`}
         >
           <span
             className={`font-semibold text-[13px] leading-[16px] ${
-              isMe ? 'text-[#ec5b16]' : 'text-[#2d8cff]'
+              isMe ? 'text-primary' : 'text-blue-500 dark:text-blue-400'
             }`}
           >
             ...
           </span>
         </div>
-        <span className="font-medium text-[13px] text-black leading-[16px]">
+        <span className="font-medium text-[13px] text-foreground leading-[16px]">
           {isMe ? 'You' : 'Them'}
         </span>
       </div>
       {/* Text content */}
-      <p className="text-[14px] text-black leading-[22px] italic">{text}</p>
+      <p className="text-[14px] text-foreground leading-[22px] italic">{text}</p>
     </div>
   );
 }
@@ -184,24 +184,24 @@ export function TranscriptionPanel() {
   }, [totalItemCount]);
 
   return (
-    <div className="border border-[#efefef] rounded-[12px] flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div className="border border-border rounded-[12px] flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-[#efefef] px-[16px] py-[10px] flex items-center gap-[8px] shrink-0 rounded-t-[12px]">
+      <div className="bg-card border-b border-border px-[16px] py-[10px] flex items-center gap-[8px] shrink-0 rounded-t-[12px]">
         <SparkleIcon />
-        <span className="font-medium text-[15px] text-black">Meeting Transcript</span>
+        <span className="font-medium text-[15px] text-foreground">Meeting Transcript</span>
       </div>
 
       {/* Transcript Content */}
       <div
         ref={scrollRef}
-        className="flex-1 bg-white overflow-y-auto p-[16px] flex flex-col gap-[10px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="flex-1 bg-card overflow-y-auto p-[16px] flex flex-col gap-[10px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {mergedItems.length === 0 && !pendingMic && !pendingSystemAudio ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <div className="w-[64px] h-[64px] rounded-full bg-[#f7f7f7] flex items-center justify-center mb-4">
+            <div className="w-[64px] h-[64px] rounded-full bg-secondary flex items-center justify-center mb-4">
               <SparkleIcon />
             </div>
-            <p className="text-[#464646] font-medium text-[14px]">
+            <p className="text-muted-foreground font-medium text-[14px]">
               {enabled
                 ? isRecording
                   ? 'Waiting for speech...'

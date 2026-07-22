@@ -5,14 +5,14 @@ function SparkleIcon() {
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M10 2L11.5 7L16.5 8.5L11.5 10L10 15L8.5 10L3.5 8.5L8.5 7L10 2Z"
-        stroke="#EC5B16"
+        stroke="hsl(var(--primary))"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M15 12L15.75 14.25L18 15L15.75 15.75L15 18L14.25 15.75L12 15L14.25 14.25L15 12Z"
-        stroke="#EC5B16"
+        stroke="hsl(var(--primary))"
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -23,24 +23,24 @@ function SparkleIcon() {
 
 function PopOutIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg className="text-muted-foreground" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M9 3H5C3.89543 3 3 3.89543 3 5V17C3 18.1046 3.89543 19 5 19H17C18.1046 19 19 18.1046 19 17V13"
-        stroke="#969696"
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M13 3H19V9"
-        stroke="#969696"
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M19 3L10 12"
-        stroke="#969696"
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -51,18 +51,18 @@ function PopOutIcon() {
 
 function CloseIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="11" cy="11" r="8" stroke="#969696" strokeWidth="1.5" />
+    <svg className="text-muted-foreground" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5" />
       <path
         d="M8 8L14 14"
-        stroke="#969696"
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M14 8L8 14"
-        stroke="#969696"
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -82,12 +82,11 @@ export function WidgetHeader() {
 
   return (
     <div
-      className="flex items-center justify-between bg-white"
+      className="flex items-center justify-between border-b border-border bg-card"
       style={{
         height: '51px',
         padding: '12px 16px',
         gap: '12px',
-        borderBottom: '1px solid #EFEFEF',
         WebkitAppRegion: 'drag',
       } as React.CSSProperties}
     >
@@ -95,7 +94,7 @@ export function WidgetHeader() {
       <div className="flex items-center gap-2 flex-1">
         <SparkleIcon />
         <span
-          className="font-medium text-black whitespace-nowrap"
+          className="font-medium text-foreground whitespace-nowrap"
           style={{ fontSize: '15px', lineHeight: 'normal' }}
         >
           Live Assist

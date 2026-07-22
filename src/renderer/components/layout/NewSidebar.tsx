@@ -25,7 +25,7 @@ interface NewSidebarProps {
 
 // Home Icon
 function HomeIcon({ active }: { active: boolean }) {
-  const color = active ? '#ec5b16' : '#464646';
+  const color = active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))';
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -34,7 +34,7 @@ function HomeIcon({ active }: { active: boolean }) {
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill={active ? 'rgba(236,91,22,0.15)' : 'none'}
+        fill={active ? 'hsl(var(--primary) / 0.15)' : 'none'}
       />
       <path
         d="M9 22V12h6v10"
@@ -49,7 +49,7 @@ function HomeIcon({ active }: { active: boolean }) {
 
 // Past Recordings Icon (clock with history arrow)
 function PastRecordingsIcon({ active }: { active: boolean }) {
-  const color = active ? '#ec5b16' : '#464646';
+  const color = active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))';
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -74,16 +74,16 @@ function RecordingIndicatorIcon() {
         cx="12"
         cy="12"
         r="9"
-        stroke="#ec5b16"
+        stroke="hsl(var(--primary))"
         strokeWidth="1.5"
-        fill="rgba(236,91,22,0.15)"
+        fill="hsl(var(--primary) / 0.15)"
       />
       {/* Inner recording dot - pulsing red */}
       <circle
         cx="12"
         cy="12"
         r="5"
-        fill="#d1242f"
+        fill="hsl(var(--destructive))"
         className="animate-pulse"
       />
     </svg>
@@ -93,7 +93,7 @@ function RecordingIndicatorIcon() {
 
 // Settings Icon
 function SettingsIcon({ active }: { active: boolean }) {
-  const color = active ? '#ec5b16' : '#464646';
+  const color = active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))';
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle
@@ -102,7 +102,7 @@ function SettingsIcon({ active }: { active: boolean }) {
         r="3"
         stroke={color}
         strokeWidth="1.5"
-        fill={active ? 'rgba(236,91,22,0.15)' : 'none'}
+        fill={active ? 'hsl(var(--primary) / 0.15)' : 'none'}
       />
       <path
         d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"
@@ -121,14 +121,14 @@ function LogoutIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"
-        stroke="#464646"
+        stroke="hsl(var(--muted-foreground))"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M16 17l5-5-5-5M21 12H9"
-        stroke="#464646"
+        stroke="hsl(var(--muted-foreground))"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -165,7 +165,7 @@ export function NewSidebar({ activeTab, onTabChange }: NewSidebarProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-[rgba(0,0,0,0.1)]">
+    <div className="flex flex-col h-full bg-card border-r border-border">
       {/* Top section with logo and nav */}
       <div className="flex-1 flex flex-col items-center gap-[20px] p-[20px]">
         <img src={logoIcon} width={40} height={40} alt="Call.md" className="rounded-[9px]" />
@@ -176,7 +176,7 @@ export function NewSidebar({ activeTab, onTabChange }: NewSidebarProps) {
             key={id}
             onClick={() => onTabChange(id)}
             className={`p-[4px] rounded-[6px] transition-colors ${
-              activeTab === id ? 'bg-[#ffe9d3]' : 'hover:bg-[#f5f5f5]'
+              activeTab === id ? 'bg-accent' : 'hover:bg-secondary'
             }`}
             title={label}
           >
@@ -189,7 +189,7 @@ export function NewSidebar({ activeTab, onTabChange }: NewSidebarProps) {
       <div className="flex flex-col items-center pb-[20px]">
         <button
           onClick={handleLogout}
-          className="p-[4px] rounded-[6px] hover:bg-[#f5f5f5] transition-colors"
+          className="p-[4px] rounded-[6px] hover:bg-secondary transition-colors"
           title="Logout"
         >
           <LogoutIcon />

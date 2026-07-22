@@ -72,13 +72,10 @@ export function WidgetContent({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="flex-1 min-h-0 flex flex-col overflow-y-auto"
+      className="flex-1 min-h-0 flex flex-col overflow-y-auto border border-t-0 border-border bg-secondary/90"
       style={{
         padding: '20px 16px',
         gap: '16px',
-        background: 'rgba(247, 247, 247, 0.9)',
-        border: '1px solid #EFEFEF',
-        borderTop: 'none',
       }}
     >
       {/* Nudge Alert - shown at top when present */}

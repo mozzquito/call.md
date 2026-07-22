@@ -47,8 +47,8 @@ function getStatusInfo(status: MCPConnectionStatus) {
     default:
       return {
         icon: WifiOff,
-        color: 'text-slate-400',
-        bgColor: 'bg-slate-400',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted-foreground',
         badgeVariant: 'outline' as const,
         label: 'Disconnected',
       };
@@ -97,7 +97,7 @@ export function MCPStatusIndicator({
           )}
         />
         {showToolCount && toolCount > 0 && (
-          <span className="text-xs text-slate-500">{toolCount}</span>
+          <span className="text-xs text-muted-foreground">{toolCount}</span>
         )}
       </div>
     );
@@ -117,7 +117,7 @@ export function MCPStatusIndicator({
           {connectedCount}/{totalCount}
         </span>
         {showToolCount && toolCount > 0 && (
-          <span className="text-xs text-slate-500">({toolCount} tools)</span>
+          <span className="text-xs text-muted-foreground">({toolCount} tools)</span>
         )}
       </div>
     );

@@ -99,7 +99,7 @@ export function MCPResultCard({
               <Zap className="h-4 w-4 text-amber-500" />
               {result.title}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {formatToolName(result.toolName)}
             </p>
           </div>
@@ -131,7 +131,7 @@ export function MCPResultCard({
       <CardContent className="p-4">
         <ScrollArea className="max-h-[300px]">
           {content.text && (
-            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+            <p className="text-sm text-foreground whitespace-pre-wrap">
               {content.text}
             </p>
           )}
@@ -164,9 +164,9 @@ export function MCPResultCard({
               {content.items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start justify-between p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
+                  className="flex items-start justify-between p-2 bg-muted rounded-lg"
                 >
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {item.label}
                   </span>
                   {item.type === 'link' ? (
@@ -186,7 +186,7 @@ export function MCPResultCard({
                       {item.value}
                     </Badge>
                   ) : (
-                    <span className="text-sm text-slate-700 dark:text-slate-300 text-right max-w-[60%]">
+                    <span className="text-sm text-foreground text-right max-w-[60%]">
                       {item.value}
                     </span>
                   )}
@@ -200,12 +200,12 @@ export function MCPResultCard({
               {Object.entries(content.properties).map(([key, value], idx) => (
                 <div
                   key={idx}
-                  className="flex items-start justify-between p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
+                  className="flex items-start justify-between p-2 bg-muted rounded-lg"
                 >
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                   </span>
-                  <span className="text-sm text-slate-700 dark:text-slate-300 text-right max-w-[60%]">
+                  <span className="text-sm text-foreground text-right max-w-[60%]">
                     {String(value)}
                   </span>
                 </div>
@@ -214,15 +214,15 @@ export function MCPResultCard({
           )}
 
           {content.raw !== undefined && !content.text && !content.items && !content.properties && (
-            <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded-lg overflow-auto">
+            <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto">
               {JSON.stringify(content.raw, null, 2)}
             </pre>
           )}
         </ScrollArea>
       </CardContent>
 
-      <div className="border-t px-4 py-2 bg-slate-50 dark:bg-slate-900 flex items-center justify-between">
-        <span className="text-xs text-slate-400">
+      <div className="border-t px-4 py-2 bg-secondary flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
           {new Date(result.timestamp).toLocaleTimeString()}
         </span>
       </div>

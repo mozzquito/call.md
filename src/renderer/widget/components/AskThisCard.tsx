@@ -18,12 +18,11 @@ function QuestionIcon() {
 function CheckboxEmpty() {
   return (
     <div
+      className="border border-muted-foreground bg-card"
       style={{
         width: '16px',
         height: '16px',
         borderRadius: '4px',
-        border: '1px solid #969696',
-        background: 'white',
       }}
     />
   );
@@ -66,10 +65,8 @@ export function AskThisCard({ text, onDismiss }: AskThisCardProps) {
 
   return (
     <div
-      className="w-full flex items-start"
+      className="w-full flex items-start border border-blue-500/30 bg-blue-500/20"
       style={{
-        background: 'rgba(59, 130, 246, 0.2)',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
         borderRadius: '16px',
         boxShadow: '0px 1px 15px 0px rgba(0,0,0,0.05)',
         padding: '8px 12px',
@@ -89,7 +86,7 @@ export function AskThisCard({ text, onDismiss }: AskThisCardProps) {
           <QuestionIcon />
         )}
       </div>
-      <p className="flex-1 text-black" style={{ fontSize: '14px', lineHeight: '22px' }}>
+      <p className="flex-1 text-foreground" style={{ fontSize: '14px', lineHeight: '22px' }}>
         {text}
       </p>
     </div>

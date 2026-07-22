@@ -1,4 +1,5 @@
-import { ipcMain, shell, Notification, BrowserWindow } from 'electron';
+import { ipcMain, shell, Notification, BrowserWindow, nativeTheme } from 'electron';
+import type { ThemeSource } from '../../shared/types/ipc.types';
 import { loadAppConfig, loadRuntimeConfig, clearAppConfig } from '../lib/config';
 import { VideoDBService } from '../services/videodb.service';
 import { getServerStatus } from '../server';
@@ -7,6 +8,9 @@ import os from 'os';
 import path from 'path';
 
 const logger = createChildLogger('ipc-app');
+
+const isThemeSource = (source: unknown): source is ThemeSource =>
+  source === 'system' || source === 'light' || source === 'dark';
 
 export function setupAppHandlers(): void {
   ipcMain.handle(
@@ -32,6 +36,14 @@ export function setupAppHandlers(): void {
   ipcMain.handle('get-server-port', async (): Promise<number> => {
     const status = getServerStatus();
     return status.port || 51731; // fallback to default
+  });
+
+  ipcMain.handle('set-theme-source', async (_event, source: unknown): Promise<void> => {
+    if (!isThemeSource(source)) {
+      throw new Error('Invalid theme source');
+    }
+
+    nativeTheme.themeSource = source;
   });
 
   ipcMain.handle('logout', async (): Promise<void> => {

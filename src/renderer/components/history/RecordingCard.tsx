@@ -39,30 +39,30 @@ interface StatusConfig {
 const statusConfigs: Record<RecordingStatus, StatusConfig> = {
   recording: {
     label: 'Recording',
-    bgColor: 'bg-[#3b82f6]',
-    hoverBg: 'hover:bg-[#eff6ff]',
-    hoverBorder: 'hover:border-[#93c5fd]',
+    bgColor: 'bg-blue-500',
+    hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-950/30',
+    hoverBorder: 'hover:border-blue-300 dark:hover:border-blue-800',
     icon: <Circle className="h-4 w-4 fill-current" />,
   },
   processing: {
     label: 'Processing',
-    bgColor: 'bg-[#eab308]',
-    hoverBg: 'hover:bg-[#fefce8]',
-    hoverBorder: 'hover:border-[#fde047]',
+    bgColor: 'bg-yellow-500',
+    hoverBg: 'hover:bg-yellow-50 dark:hover:bg-yellow-950/30',
+    hoverBorder: 'hover:border-yellow-300 dark:hover:border-yellow-800',
     icon: <Loader2 className="h-4 w-4 animate-spin" />,
   },
   available: {
     label: 'Done',
-    bgColor: 'bg-[#559e58]',
-    hoverBg: 'hover:bg-[#f0fdf4]',
-    hoverBorder: 'hover:border-[#86efac]',
+    bgColor: 'bg-green-600',
+    hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-950/30',
+    hoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-800',
     icon: <CheckCircle2 className="h-4 w-4" />,
   },
   failed: {
     label: 'Error',
-    bgColor: 'bg-[#ef4444]',
-    hoverBg: 'hover:bg-[#fef2f2]',
-    hoverBorder: 'hover:border-[#fca5a5]',
+    bgColor: 'bg-destructive',
+    hoverBg: 'hover:bg-red-50 dark:hover:bg-red-950/30',
+    hoverBorder: 'hover:border-red-300 dark:hover:border-red-800',
     icon: <AlertTriangle className="h-4 w-4" />,
   },
 };
@@ -101,7 +101,7 @@ function CopyPathButton({ recording }: { recording: Recording }) {
         disabled
         className="w-[24px] h-[24px] flex items-center justify-center rounded opacity-10 cursor-not-allowed"
       >
-        <Copy className="w-[16px] h-[16px] text-[#464646]" />
+        <Copy className="w-[16px] h-[16px] text-muted-foreground" />
       </button>
     );
   }
@@ -112,7 +112,7 @@ function CopyPathButton({ recording }: { recording: Recording }) {
         onClick={handleClick}
         className="w-[24px] h-[24px] flex items-center justify-center rounded opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
       >
-        <Copy className="w-[16px] h-[16px] text-[#464646]" />
+        <Copy className="w-[16px] h-[16px] text-muted-foreground" />
       </button>
     </Tooltip>
   );
@@ -140,7 +140,7 @@ function OpenFolderButton({ recording }: { recording: Recording }) {
         disabled
         className="w-[24px] h-[24px] flex items-center justify-center rounded opacity-10 cursor-not-allowed"
       >
-        <ExternalLink className="w-[16px] h-[16px] text-[#464646]" />
+        <ExternalLink className="w-[16px] h-[16px] text-muted-foreground" />
       </button>
     );
   }
@@ -151,7 +151,7 @@ function OpenFolderButton({ recording }: { recording: Recording }) {
         onClick={handleClick}
         className="w-[24px] h-[24px] flex items-center justify-center rounded opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
       >
-        <ExternalLink className="w-[16px] h-[16px] text-[#464646]" />
+        <ExternalLink className="w-[16px] h-[16px] text-muted-foreground" />
       </button>
     </Tooltip>
   );
@@ -183,7 +183,7 @@ export function RecordingCard({ recording, onClick }: RecordingCardProps) {
     <div
       onClick={onClick}
       className={cn(
-        'bg-[#f7f7f7] border border-[#efefef] rounded-[16px] pt-[20px] pb-[24px] px-[20px] cursor-pointer',
+        'bg-secondary border border-border rounded-[16px] pt-[20px] pb-[24px] px-[20px] cursor-pointer',
         'transition-all duration-200',
         'flex flex-col gap-[20px] h-full',
         config.hoverBg,
@@ -202,7 +202,7 @@ export function RecordingCard({ recording, onClick }: RecordingCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-[18px] font-medium text-black tracking-[0.09px] line-clamp-1">
+        <h3 className="text-[18px] font-medium text-foreground tracking-[0.09px] line-clamp-1">
           {title}
         </h3>
 
@@ -210,8 +210,8 @@ export function RecordingCard({ recording, onClick }: RecordingCardProps) {
         <div className="flex items-center gap-[20px]">
           {/* Date */}
           <div className="flex items-center gap-[4px]">
-            <Calendar className="h-4 w-4 text-[#969696]" />
-            <span className="text-[13px] text-[#464646] tracking-[0.065px]">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[13px] text-muted-foreground tracking-[0.065px]">
               {formatDate(recording.createdAt)}
             </span>
           </div>
@@ -219,8 +219,8 @@ export function RecordingCard({ recording, onClick }: RecordingCardProps) {
           {/* Duration */}
           {recording.duration && (
             <div className="flex items-center gap-[8px]">
-              <Clock className="h-4 w-4 text-[#969696]" />
-              <span className="text-[13px] text-[#464646] tracking-[0.065px]">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[13px] text-muted-foreground tracking-[0.065px]">
                 {formatDurationMinutes(recording.duration)}
               </span>
             </div>
@@ -229,7 +229,7 @@ export function RecordingCard({ recording, onClick }: RecordingCardProps) {
       </div>
 
       {/* Description */}
-      <p className="text-[13px] text-[#2d2d2d] leading-[18px] tracking-[0.065px] line-clamp-4">
+      <p className="text-[13px] text-foreground leading-[18px] tracking-[0.065px] line-clamp-4">
         {description}
       </p>
     </div>

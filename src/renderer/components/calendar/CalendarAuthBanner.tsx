@@ -60,7 +60,7 @@ export function CalendarAuthBanner() {
             size="sm"
             onClick={handleReconnect}
             disabled={isReconnecting}
-            className="bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+            className="bg-card border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50"
           >
             {isReconnecting ? (
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />

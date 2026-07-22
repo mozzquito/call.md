@@ -50,6 +50,7 @@ export function removeIpcHandlers(): void {
   // App handlers
   ipcMain.removeHandler('get-settings');
   ipcMain.removeHandler('get-server-port');
+  ipcMain.removeHandler('set-theme-source');
   ipcMain.removeHandler('logout');
   ipcMain.removeHandler('open-external-link');
   ipcMain.removeHandler('show-notification');

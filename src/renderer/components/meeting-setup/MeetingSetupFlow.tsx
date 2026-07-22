@@ -188,12 +188,12 @@ export function MeetingSetupFlow({ onCancel }: MeetingSetupFlowProps) {
       {/* Main content */}
       <div className="w-full max-w-[480px] px-6 relative z-10">
         {error && (
-          <div className="mb-6 p-[16px] bg-[#fff5f5] border border-[#ffdfdf] rounded-[12px] flex items-start gap-[12px]">
+          <div className="mb-6 p-[16px] bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-[12px] flex items-start gap-[12px]">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mt-0.5">
-              <circle cx="10" cy="10" r="8" stroke="#dc2626" strokeWidth="1.5" />
-              <path d="M10 6v5M10 13.5v.5" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="10" cy="10" r="8" stroke="hsl(var(--destructive))" strokeWidth="1.5" />
+              <path d="M10 6v5M10 13.5v.5" stroke="hsl(var(--destructive))" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <p className="text-[13px] text-[#dc2626] leading-[20px]">{error}</p>
+            <p className="text-[13px] text-red-600 dark:text-red-400 leading-[20px]">{error}</p>
           </div>
         )}
 
