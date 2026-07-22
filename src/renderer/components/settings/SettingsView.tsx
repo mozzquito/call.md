@@ -18,6 +18,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useConfigStore } from '../../stores/config.store';
+import { trpc } from '../../api/trpc';
 import { MCPServersPanel } from './MCPServersPanel';
 import { NotificationsPanel } from './NotificationsPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
@@ -152,10 +153,12 @@ function LogoutIcon() {
 // Account Panel Component
 function AccountPanel() {
   const configStore = useConfigStore();
+  const updateApiKeyMutation = trpc.auth.updateApiKey.useMutation();
   const [showApiKey, setShowApiKey] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
   // Calendar state
@@ -231,14 +234,34 @@ function AccountPanel() {
   };
 
   const handleSaveApiKey = async () => {
-    if (!newApiKey.trim()) return;
+    const apiKey = newApiKey.trim();
+    if (!apiKey) return;
+
     setIsSaving(true);
+    setSaveError(null);
+
     try {
-      configStore.setConfig({ apiKey: newApiKey.trim() });
+      const result = await updateApiKeyMutation.mutateAsync({ apiKey });
+      if (!result.success) {
+        setSaveError(result.error || 'Failed to update API key');
+        return;
+      }
+
+      configStore.setConfig({ apiKey });
       setIsEditingApiKey(false);
       setNewApiKey('');
+
+      try {
+        const copilotResult = await window.electronAPI.copilot.initialize(apiKey);
+        if (!copilotResult.success) {
+          console.error('Failed to reinitialize copilot:', copilotResult.error);
+        }
+      } catch (error) {
+        console.error('Failed to reinitialize copilot:', error);
+      }
     } catch (err) {
       console.error('Failed to save API key:', err);
+      setSaveError(err instanceof Error ? err.message : 'Failed to update API key');
     } finally {
       setIsSaving(false);
     }
@@ -247,6 +270,7 @@ function AccountPanel() {
   const handleCancelEdit = () => {
     setIsEditingApiKey(false);
     setNewApiKey('');
+    setSaveError(null);
   };
 
   const handleLogout = () => {
@@ -273,7 +297,10 @@ function AccountPanel() {
               <input
                 type="text"
                 value={newApiKey}
-                onChange={(e) => setNewApiKey(e.target.value)}
+                onChange={(e) => {
+                  setNewApiKey(e.target.value);
+                  setSaveError(null);
+                }}
                 placeholder="Paste new API key"
                 className="w-[200px] px-[12px] py-[6px] bg-[#f7f7f7] border border-[#e9e9e9] rounded-[8px] text-[13px] text-[#141420] placeholder:text-[#969696] outline-none focus:border-[#ec5b16]"
               />
@@ -321,7 +348,10 @@ function AccountPanel() {
                 )}
               </button>
               <button
-                onClick={() => setIsEditingApiKey(true)}
+                onClick={() => {
+                  setIsEditingApiKey(true);
+                  setSaveError(null);
+                }}
                 className="flex items-center gap-[4px] px-[10px] py-[6px] bg-[#f0f0f5] border border-[#efefef] rounded-[8px] hover:bg-[#e8e8ed] transition-colors"
               >
                 <Pencil className="w-[16px] h-[16px] text-[#ff4000]" />
@@ -330,6 +360,12 @@ function AccountPanel() {
             </>
           )}
         </CardRow>
+        {saveError && (
+          <div className="flex items-center gap-[6px] px-[20px] pb-[14px] text-[12px] text-[#d1242f]">
+            <AlertCircle className="w-[14px] h-[14px] shrink-0" />
+            <span>{saveError}</span>
+          </div>
+        )}
       </SettingsCard>
 
       {/* Calendar Connection Card */}

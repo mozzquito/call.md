@@ -12,6 +12,15 @@ export const RegisterOutputSchema = z.object({
   error: z.string().optional(),
 });
 
+export const UpdateApiKeyInputSchema = z.object({
+  apiKey: z.string().trim().min(1, 'API key is required'),
+});
+
+export const UpdateApiKeyOutputSchema = z.object({
+  success: z.boolean(),
+  error: z.string().optional(),
+});
+
 export const UserSchema = z.object({
   id: z.number(),
   name: z.string(),

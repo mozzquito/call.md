@@ -8,12 +8,17 @@ interface StreamState {
   screen: boolean;
 }
 
+interface SessionTokenOwner {
+  accessToken: string;
+  apiKey: string | null;
+}
+
 interface SessionState {
   status: SessionStatus;
   sessionId: string | null;
   recordingId: number | null; // Database recording ID for navigation after stop
   sessionToken: string | null;
-  sessionTokenOwner: string | null;
+  sessionTokenOwner: SessionTokenOwner | null;
   tokenExpiresAt: number | null;
   startTime: number | null;
   elapsedTime: number;
@@ -31,11 +36,11 @@ interface SessionState {
     sessionId: string,
     sessionToken: string,
     expiresAt: number,
-    accessToken: string,
+    owner: SessionTokenOwner,
     screenWsConnectionId?: string
   ) => void;
   stopSession: () => void;
-  setSessionToken: (token: string, expiresAt: number, accessToken: string) => void;
+  setSessionToken: (token: string, expiresAt: number, owner: SessionTokenOwner) => void;
   setElapsedTime: (time: number) => void;
   toggleStream: (stream: keyof StreamState) => void;
   setStreams: (streams: Partial<StreamState>) => void;
@@ -44,7 +49,7 @@ interface SessionState {
   setError: (error: string | null) => void;
   setScreenWsConnectionId: (id: string | null) => void;
   reset: () => void;
-  isTokenExpired: (accessToken: string) => boolean;
+  isTokenExpired: (owner: SessionTokenOwner) => boolean;
 }
 
 const initialStreams: StreamState = {
@@ -73,13 +78,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setRecordingId: (id) => set({ recordingId: id }),
 
-  startSession: (sessionId, sessionToken, expiresAt, accessToken, screenWsConnectionId) => {
+  startSession: (sessionId, sessionToken, expiresAt, owner, screenWsConnectionId) => {
     const now = Date.now();
     set({
       status: 'recording',
       sessionId,
       sessionToken,
-      sessionTokenOwner: accessToken,
+      sessionTokenOwner: owner,
       tokenExpiresAt: expiresAt,
       startTime: now,
       elapsedTime: 0,
@@ -104,10 +109,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     });
   },
 
-  setSessionToken: (token, expiresAt, accessToken) => {
+  setSessionToken: (token, expiresAt, owner) => {
     set({
       sessionToken: token,
-      sessionTokenOwner: accessToken,
+      sessionTokenOwner: owner,
       tokenExpiresAt: expiresAt,
     });
   },
@@ -173,9 +178,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     });
   },
 
-  isTokenExpired: (accessToken) => {
+  isTokenExpired: (owner) => {
     const { sessionToken, sessionTokenOwner, tokenExpiresAt } = get();
-    if (!sessionToken || sessionTokenOwner !== accessToken || !tokenExpiresAt) return true;
+    if (
+      !sessionToken ||
+      !sessionTokenOwner ||
+      sessionTokenOwner.accessToken !== owner.accessToken ||
+      sessionTokenOwner.apiKey !== owner.apiKey ||
+      !tokenExpiresAt
+    ) {
+      return true;
+    }
     // Consider expired if less than 5 minutes remaining
     const bufferSeconds = 5 * 60;
     return Date.now() / 1000 > tokenExpiresAt - bufferSeconds;

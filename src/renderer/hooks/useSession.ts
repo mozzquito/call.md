@@ -71,6 +71,8 @@ export function useSession() {
       return;
     }
 
+    const tokenOwner = { accessToken, apiKey: configStore.apiKey };
+
     console.log('[useSession] Setting status to starting');
     sessionStore.setStatus('starting');
     transcriptionStore.clear();
@@ -81,11 +83,11 @@ export function useSession() {
       let sessionToken = sessionStore.sessionToken;
       let tokenExpiresAt = sessionStore.tokenExpiresAt;
 
-      if (sessionStore.isTokenExpired(accessToken)) {
+      if (sessionStore.isTokenExpired(tokenOwner)) {
         const tokenResult = await generateTokenMutation.mutateAsync({});
         sessionToken = tokenResult.sessionToken;
         tokenExpiresAt = tokenResult.expiresAt;
-        sessionStore.setSessionToken(sessionToken, tokenExpiresAt, accessToken);
+        sessionStore.setSessionToken(sessionToken, tokenExpiresAt, tokenOwner);
       }
 
       if (!sessionToken) {
@@ -166,7 +168,7 @@ export function useSession() {
         captureSession.sessionId,
         sessionToken!,
         tokenExpiresAt!,
-        accessToken,
+        tokenOwner,
         result.screenWsConnectionId
       );
     } catch (error) {

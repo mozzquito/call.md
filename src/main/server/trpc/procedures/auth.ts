@@ -1,9 +1,14 @@
 import { TRPCError } from '@trpc/server';
 import { v4 as uuidv4 } from 'uuid';
-import { router, publicProcedure } from '../trpc';
-import { RegisterInputSchema, RegisterOutputSchema } from '../../../../shared/schemas/auth.schema';
-import { createUser, getUserByAccessToken } from '../../../db';
-import { createVideoDBService } from '../../../services/videodb.service';
+import { router, protectedProcedure, publicProcedure } from '../trpc';
+import {
+  RegisterInputSchema,
+  RegisterOutputSchema,
+  UpdateApiKeyInputSchema,
+  UpdateApiKeyOutputSchema,
+} from '../../../../shared/schemas/auth.schema';
+import { createUser, getUserByAccessToken, updateUser } from '../../../db';
+import { createVideoDBService, VideoDBService } from '../../../services/videodb.service';
 import { createChildLogger } from '../../../lib/logger';
 import { loadRuntimeConfig } from '../../../lib/config';
 
@@ -80,6 +85,42 @@ export const authRouter = router({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to create user',
         });
+      }
+    }),
+
+  updateApiKey: protectedProcedure
+    .input(UpdateApiKeyInputSchema)
+    .output(UpdateApiKeyOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { apiKey } = input;
+      const userId = ctx.user.id;
+
+      logger.info({ userId }, 'API key update attempt');
+
+      const runtimeConfig = loadRuntimeConfig();
+      const videodbService = createVideoDBService(apiKey, runtimeConfig.apiUrl);
+
+      if (!(await videodbService.verifyApiKey())) {
+        logger.warn({ userId }, 'API key update failed: Invalid API key');
+        return {
+          success: false,
+          error: 'Invalid API key',
+        };
+      }
+
+      try {
+        const collectionId = await videodbService.findOrCreateCallMdCollection();
+        updateUser(userId, { apiKey, collectionId });
+        VideoDBService.clearCache();
+
+        logger.info({ userId, collectionId }, 'API key updated');
+        return { success: true };
+      } catch (error) {
+        logger.error({ error, userId }, 'Failed to update API key');
+        return {
+          success: false,
+          error: 'Failed to update API key. Please try again.',
+        };
       }
     }),
 });
