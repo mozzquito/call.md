@@ -381,6 +381,12 @@ const api: IpcApi = {
 
   app: {
     getSettings: () => ipcRenderer.invoke('get-settings'),
+    saveSettings: (settings: {
+      accessToken?: string;
+      userName?: string;
+      apiKey?: string;
+      transcriptionLanguage?: string;
+    }) => ipcRenderer.invoke('save-settings', settings),
     getServerPort: () => ipcRenderer.invoke('get-server-port'),
     logout: () => ipcRenderer.invoke('logout'),
     openExternalLink: (url: string) => ipcRenderer.invoke('open-external-link', url),

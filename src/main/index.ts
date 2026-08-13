@@ -33,6 +33,7 @@ import {
   loadAuthConfig,
   deleteAuthConfig,
   saveAppConfig,
+  secureUserDataDir,
 } from './lib/config';
 import { logger } from './lib/logger';
 import { applyVideoDBPatches } from './lib/videodb-patch';
@@ -141,7 +142,9 @@ async function createWindow(): Promise<void> {
       preload: path.join(__dirname, '..', 'preload', 'index.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,
+      // The preload only uses contextBridge/ipcRenderer, so the renderer can
+      // run in the OS sandbox.
+      sandbox: true,
     },
   });
 
@@ -454,6 +457,9 @@ if (!gotTheLock) {
 
 app.whenReady().then(async () => {
   logger.info('App starting');
+
+  // Lock down app data before anything opens the database or config files.
+  secureUserDataDir();
 
   // Setup protocol handler for OAuth callbacks
   setupProtocolHandler();

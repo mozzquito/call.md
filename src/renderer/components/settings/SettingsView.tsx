@@ -25,9 +25,10 @@ import { useThemeStore } from '../../stores/theme.store';
 import type { ThemeSource } from '../../../shared/theme';
 import { MCPServersPanel } from './MCPServersPanel';
 import { NotificationsPanel } from './NotificationsPanel';
+import { TranscriptionPanel } from './TranscriptionPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
 
-type SettingsTab = 'account' | 'notifications' | 'mcpServers' | 'workflows';
+type SettingsTab = 'account' | 'notifications' | 'transcription' | 'mcpServers' | 'workflows';
 
 interface SettingsViewProps {
   initialTab?: SettingsTab | null;
@@ -45,6 +46,7 @@ function SettingsTabs({
   const tabs: { id: SettingsTab; label: string }[] = [
     { id: 'account', label: 'Account' },
     { id: 'notifications', label: 'Notifications' },
+    { id: 'transcription', label: 'Transcription' },
     { id: 'mcpServers', label: 'MCP Servers' },
     { id: 'workflows', label: 'Workflows' },
   ];
@@ -55,7 +57,7 @@ function SettingsTabs({
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`flex-1 px-[16px] py-[12px] rounded-[12px] text-[14px] font-medium transition-all ${
+          className={`flex-1 px-[12px] py-[12px] rounded-[12px] text-[14px] font-medium transition-all whitespace-nowrap ${
             activeTab === tab.id
               ? 'bg-primary text-white font-semibold shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
               : 'text-muted-foreground hover:bg-muted'
@@ -240,7 +242,15 @@ function AccountPanel() {
     if (!newApiKey.trim()) return;
     setIsSaving(true);
     try {
-      configStore.setConfig({ apiKey: newApiKey.trim() });
+      const apiKey = newApiKey.trim();
+      // Persist through the main process - the renderer no longer keeps the
+      // key in localStorage.
+      const result = await window.electronAPI.app.saveSettings({ apiKey });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save API key');
+      }
+
+      configStore.setConfig({ apiKey });
       setIsEditingApiKey(false);
       setNewApiKey('');
     } catch (err) {
@@ -443,6 +453,8 @@ export function SettingsView({ initialTab, onClearInitialTab }: SettingsViewProp
         return <AccountPanel />;
       case 'notifications':
         return <NotificationsPanel />;
+      case 'transcription':
+        return <TranscriptionPanel />;
       case 'mcpServers':
         return <MCPServersPanel />;
       case 'workflows':
