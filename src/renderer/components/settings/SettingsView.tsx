@@ -21,9 +21,10 @@ import { useConfigStore } from '../../stores/config.store';
 import { trpc } from '../../api/trpc';
 import { MCPServersPanel } from './MCPServersPanel';
 import { NotificationsPanel } from './NotificationsPanel';
+import { TranscriptionPanel } from './TranscriptionPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
 
-type SettingsTab = 'account' | 'notifications' | 'mcpServers' | 'workflows';
+type SettingsTab = 'account' | 'notifications' | 'transcription' | 'mcpServers' | 'workflows';
 
 interface SettingsViewProps {
   initialTab?: SettingsTab | null;
@@ -41,6 +42,7 @@ function SettingsTabs({
   const tabs: { id: SettingsTab; label: string }[] = [
     { id: 'account', label: 'Account' },
     { id: 'notifications', label: 'Notifications' },
+    { id: 'transcription', label: 'Transcription' },
     { id: 'mcpServers', label: 'MCP Servers' },
     { id: 'workflows', label: 'Workflows' },
   ];
@@ -51,7 +53,7 @@ function SettingsTabs({
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`flex-1 px-[16px] py-[12px] rounded-[12px] text-[14px] font-medium transition-all ${
+          className={`flex-1 px-[12px] py-[12px] rounded-[12px] text-[14px] font-medium transition-all whitespace-nowrap ${
             activeTab === tab.id
               ? 'bg-[#ff4000] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
               : 'text-[#464646] hover:bg-[#efefef]'
@@ -241,9 +243,19 @@ function AccountPanel() {
     setSaveError(null);
 
     try {
+      // Validate against VideoDB and store it on the user record, so server
+      // routes stop reading the old key.
       const result = await updateApiKeyMutation.mutateAsync({ apiKey });
       if (!result.success) {
         setSaveError(result.error || 'Failed to update API key');
+        return;
+      }
+
+      // Then persist it through the main process. The renderer no longer keeps
+      // the key in localStorage, so this is what survives a restart.
+      const saved = await window.electronAPI.app.saveSettings({ apiKey });
+      if (!saved.success) {
+        setSaveError(saved.error || 'API key updated, but saving it for next launch failed');
         return;
       }
 
@@ -441,6 +453,8 @@ export function SettingsView({ initialTab, onClearInitialTab }: SettingsViewProp
         return <AccountPanel />;
       case 'notifications':
         return <NotificationsPanel />;
+      case 'transcription':
+        return <TranscriptionPanel />;
       case 'mcpServers':
         return <MCPServersPanel />;
       case 'workflows':

@@ -16,6 +16,12 @@ export const StartTranscriptionInputSchema = z.object({
   micWsConnectionId: z.string().optional(),
   sysAudioWsConnectionId: z.string().optional(),
   screenWsConnectionId: z.string().optional(),
+  /**
+   * Overrides the saved transcription language for this session.
+   * 'auto' (or omitted) lets the engine decide.
+   * See shared/constants/languages.
+   */
+  languageCode: z.string().optional(),
 });
 
 export const StartTranscriptionOutputSchema = z.object({
