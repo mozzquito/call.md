@@ -49,6 +49,26 @@ let currentAccessToken: string | null = null;
 let currentApiUrl: string | undefined = undefined;
 let currentCollectionId: string | null = null;
 
+/**
+ * Whether the VideoDB capture engine can run on this OS.
+ *
+ * `@videodb/recorder` only ships binaries for darwin-x64 and darwin-arm64, so
+ * on any other platform the recorder fails deep inside the native layer with
+ * an unhelpful error. Say so up front instead.
+ *
+ * See https://github.com/video-db/call.md/issues/29.
+ */
+function getRecordingPlatformSupport(): { supported: boolean; reason?: string } {
+  if (process.platform === 'darwin') return { supported: true };
+
+  return {
+    supported: false,
+    reason:
+      `Recording is not available on ${process.platform} yet. The VideoDB capture engine ` +
+      'currently ships macOS binaries only - see https://github.com/video-db/call.md/issues/29.',
+  };
+}
+
 function ensureVideoDBPatched(): void {
   if (!app.isPackaged) return;
   try {
@@ -491,6 +511,12 @@ export function setupCaptureHandlers(): void {
       const { config, sessionToken, accessToken, apiUrl, enableTranscription, enableVisualIndex } = params;
 
       logger.info({ sessionId: config.sessionId, enableTranscription }, 'Starting recording - IPC handler called');
+
+      const platformSupport = getRecordingPlatformSupport();
+      if (!platformSupport.supported) {
+        logger.error({ platform: process.platform }, 'Recording is not supported on this platform');
+        return { success: false, error: platformSupport.reason };
+      }
 
       try {
         // Set up session WebSocket for capture_session events (informational logging)

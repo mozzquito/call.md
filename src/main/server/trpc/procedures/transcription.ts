@@ -4,7 +4,9 @@ import {
   StartTranscriptionOutputSchema,
 } from '../../../../shared/schemas/capture.schema';
 import { createChildLogger } from '../../../lib/logger';
-import { loadRuntimeConfig } from '../../../lib/config';
+import { loadRuntimeConfig, loadAppConfig } from '../../../lib/config';
+import { toLanguageCode } from '../../../../shared/constants/languages';
+import { startRtstreamTranscript } from '../../../services/rtstream-transcript.service';
 import { connect } from 'videodb';
 import type { CaptureSessionFull, RTStream } from 'videodb';
 
@@ -34,11 +36,18 @@ async function startRealtimeTranscriptionWithWs(
   micWsConnectionId?: string,
   sysAudioWsConnectionId?: string,
   screenWsConnectionId?: string,
-  apiUrl?: string
+  apiUrl?: string,
+  languageCode?: string
 ): Promise<void> {
   try {
     logger.info(
-      { sessionId: captureSessionId, micWsConnectionId, sysAudioWsConnectionId, screenWsConnectionId },
+      {
+        sessionId: captureSessionId,
+        micWsConnectionId,
+        sysAudioWsConnectionId,
+        screenWsConnectionId,
+        languageCode,
+      },
       '[Transcript] Starting transcription for session'
     );
 
@@ -177,10 +186,15 @@ async function startRealtimeTranscriptionWithWs(
     if (mics.length > 0 && micWsConnectionId) {
       const micStream = mics[0];
       logger.info(
-        { rtstreamId: micStream.id, wsConnectionId: micWsConnectionId },
+        { rtstreamId: micStream.id, wsConnectionId: micWsConnectionId, languageCode },
         '[Transcript] Starting transcript on mic'
       );
-      await micStream.startTranscript(micWsConnectionId);
+      await startRtstreamTranscript(micStream, {
+        apiKey,
+        apiUrl,
+        wsConnectionId: micWsConnectionId,
+        languageCode,
+      });
       logger.info('[Transcript] Mic transcription started');
     } else if (mics.length > 0) {
       logger.info('[Transcript] Mic stream found but no ws_connection_id provided, skipping');
@@ -190,10 +204,15 @@ async function startRealtimeTranscriptionWithWs(
     if (systemAudios.length > 0 && sysAudioWsConnectionId) {
       const sysStream = systemAudios[0];
       logger.info(
-        { rtstreamId: sysStream.id, wsConnectionId: sysAudioWsConnectionId },
+        { rtstreamId: sysStream.id, wsConnectionId: sysAudioWsConnectionId, languageCode },
         '[Transcript] Starting transcript on sys_audio'
       );
-      await sysStream.startTranscript(sysAudioWsConnectionId);
+      await startRtstreamTranscript(sysStream, {
+        apiKey,
+        apiUrl,
+        wsConnectionId: sysAudioWsConnectionId,
+        languageCode,
+      });
       logger.info('[Transcript] System audio transcription started');
     } else if (systemAudios.length > 0) {
       logger.info('[Transcript] System audio stream found but no ws_connection_id provided, skipping');
@@ -220,10 +239,21 @@ export const transcriptionRouter = router({
     .input(StartTranscriptionInputSchema)
     .output(StartTranscriptionOutputSchema)
     .mutation(async ({ input, ctx }) => {
-      const { sessionId, micWsConnectionId, sysAudioWsConnectionId, screenWsConnectionId } = input;
+      const {
+        sessionId,
+        micWsConnectionId,
+        sysAudioWsConnectionId,
+        screenWsConnectionId,
+        languageCode: requestedLanguage,
+      } = input;
+
+      // The saved preference is the default; a request may override it per call.
+      const languageCode = toLanguageCode(
+        requestedLanguage ?? loadAppConfig().transcriptionLanguage
+      );
 
       logger.info(
-        { sessionId, micWsConnectionId, sysAudioWsConnectionId, screenWsConnectionId },
+        { sessionId, micWsConnectionId, sysAudioWsConnectionId, screenWsConnectionId, languageCode },
         'Starting transcription and visual indexing'
       );
 
@@ -260,7 +290,8 @@ export const transcriptionRouter = router({
         micWsConnectionId,
         sysAudioWsConnectionId,
         screenWsConnectionId,
-        apiUrl
+        apiUrl,
+        languageCode
       ).catch((error) => {
         logger.error({ error, sessionId }, 'Background transcription task failed');
       });

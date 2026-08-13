@@ -223,7 +223,14 @@ export interface IpcApi {
       userName?: string;
       apiKey?: string;
       apiUrl?: string;
+      transcriptionLanguage?: string;
     }>;
+    saveSettings: (settings: {
+      accessToken?: string;
+      userName?: string;
+      apiKey?: string;
+      transcriptionLanguage?: string;
+    }) => Promise<{ success: boolean; error?: string }>;
     getServerPort: () => Promise<number>;
     logout: () => Promise<void>;
     openExternalLink: (url: string) => Promise<void>;

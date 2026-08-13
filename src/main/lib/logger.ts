@@ -9,7 +9,7 @@ function getLogsDir(): string {
     const logsDir = path.join(userDataPath, 'logs');
 
     if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir, { recursive: true });
+      fs.mkdirSync(logsDir, { recursive: true, mode: 0o700 });
     }
 
     return logsDir;
@@ -18,6 +18,34 @@ function getLogsDir(): string {
     return '/tmp';
   }
 }
+
+/**
+ * Keys scrubbed from every log line.
+ *
+ * Logs go to disk unencrypted and are the first thing pasted into a bug
+ * report, so credentials must never reach them. Each key is also matched one
+ * and two levels down, which covers the common `logger.info({ config })` and
+ * `logger.error({ error, server })` shapes.
+ */
+const REDACTED_KEYS = [
+  'apiKey',
+  'api_key',
+  'accessToken',
+  'access_token',
+  'refreshToken',
+  'refresh_token',
+  'sessionToken',
+  'session_token',
+  'uploadToken',
+  'token',
+  'password',
+  'secret',
+  'authorization',
+  'env',
+  'headers',
+];
+
+const REDACTED_PATHS = REDACTED_KEYS.flatMap((key) => [key, `*.${key}`, `*.*.${key}`]);
 
 function getLogFilePath(): string {
   const logsDir = getLogsDir();
@@ -33,7 +61,8 @@ let fileStream: fs.WriteStream | null = null;
 function getFileStream(): fs.WriteStream {
   if (!fileStream) {
     const logPath = getLogFilePath();
-    fileStream = fs.createWriteStream(logPath, { flags: 'a' });
+    // Owner-only: logs carry meeting content and error dumps.
+    fileStream = fs.createWriteStream(logPath, { flags: 'a', mode: 0o600 });
 
     // Log the log file location at startup
     console.log(`[Logger] Writing logs to: ${logPath}`);
@@ -73,6 +102,10 @@ export const logger = pino(
       : undefined,
     base: {
       pid: process.pid,
+    },
+    redact: {
+      paths: REDACTED_PATHS,
+      censor: '[redacted]',
     },
   },
   // In production, use our multi-stream; in dev, let pino-pretty handle it

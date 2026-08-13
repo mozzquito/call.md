@@ -71,7 +71,8 @@ export const authRouter = router({
 
         return {
           success: true,
-          accessToken: user.accessToken,
+          // The stored column holds a hash, so hand back the token we generated.
+          accessToken,
           name: user.name,
         };
       } catch (error) {

@@ -22,7 +22,10 @@
     "postinstall": "electron-rebuild -f -w better-sqlite3 || true",
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "test": "tsx --test tests/*.test.ts",
     "lint": "eslint src --ext .ts,.tsx",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"

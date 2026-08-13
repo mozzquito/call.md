@@ -9,6 +9,7 @@
 import { v4 as uuid } from 'uuid';
 import { createChildLogger } from '../lib/logger';
 import { getEnabledWorkflows } from '../db';
+import { validateWebhookUrl } from '../lib/url-guard';
 import type {
   WorkflowWebhookPayload,
   WorkflowWebhookResult,
@@ -107,6 +108,23 @@ async function callWebhook(
   try {
     logger.debug({ workflowId, workflowName, url: webhookUrl }, 'Calling webhook');
 
+    // Re-check at call time: a stored host can be re-pointed at an internal
+    // address long after it was saved.
+    const validation = await validateWebhookUrl(webhookUrl);
+    if (!validation.valid) {
+      logger.warn(
+        { workflowId, workflowName, error: validation.error },
+        'Refusing to call webhook with an unsafe URL'
+      );
+      return {
+        workflowId,
+        workflowName,
+        success: false,
+        error: validation.error,
+        responseTime: Date.now() - startTime,
+      };
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
 
@@ -119,6 +137,9 @@ async function callWebhook(
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
+      // Following a redirect would skip the checks above and could land on an
+      // internal address.
+      redirect: 'error',
     });
 
     clearTimeout(timeoutId);

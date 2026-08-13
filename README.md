@@ -47,14 +47,30 @@ https://github.com/user-attachments/assets/94470e99-c0f6-4e35-9d03-b28efa362b3b
 curl -fsSL https://artifacts.videodb.io/call.md/install | bash
 ```
 
-<p>
-  <em>Currently available for macOS and Windows — Linux support coming soon</em>
-</p>
-
 After installation:
 1. Launch Call.md from Applications or Spotlight
 2. Grant system permissions when prompted (Microphone and Screen Recording required)
 3. Register with your VideoDB API key ([get one free](https://console.videodb.io))
+
+### Platform Support
+
+| Platform | Installer | Status |
+|----------|-----------|--------|
+| macOS 12+ (Apple Silicon & Intel) | `curl` command above | Supported |
+| Windows | — | Not available yet ([#29](https://github.com/video-db/call.md/issues/29)) |
+| Linux | — | Not available yet |
+
+**There is no Windows installer today.** The blocker is not the Electron app —
+that builds on Windows and Linux — but the capture engine underneath it:
+[`@videodb/recorder`](https://www.npmjs.com/package/@videodb/recorder) ships
+binaries for `darwin-x64` and `darwin-arm64` only. With no Windows binary there
+is nothing to record microphone, system audio or screen with, so the app now
+says so up front instead of failing partway into a meeting.
+
+You can still build and run everything around recording (UI, MCP servers,
+workflows, exports) on Windows and Linux — see
+[Building for other platforms](#building-for-other-platforms). Follow
+[#29](https://github.com/video-db/call.md/issues/29) for Windows support.
 
 ---
 
@@ -66,6 +82,7 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 
 ### During the Meeting (Live Intelligence)
 - **Dual-Channel Transcription** - Separate transcription for you (mic) vs them (system audio), powered by VideoDB
+- **Transcription Language** - Pick the meeting language in **Settings → Transcription**, or leave it on Automatic
 - **Live Assist** - AI generates contextual suggestions: things to say, questions to ask
 - **Conversation Metrics** - Real-time monitoring of talk ratio, speaking pace (WPM), questions asked, monologue detection
 - **Coaching Nudges** - Gentle rate-limited alerts when conversation needs steering
@@ -121,7 +138,7 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 
 ## Prerequisites
 
-- macOS 12+ (Monterey or later)
+- macOS 12+ (Monterey or later) — required for recording, see [Platform Support](#platform-support)
 - VideoDB API Key ([console.videodb.io](https://console.videodb.io))
 - System permissions: Microphone and Screen Recording
 
@@ -176,11 +193,32 @@ The app will transcribe in real-time, show live assists, and generate a summary 
 | `npm run dev` | Start development mode (main + renderer with hot reload) |
 | `npm run build` | Build TypeScript and React for production |
 | `npm run dist:mac` | Build macOS distributable DMG |
+| `npm run dist:win` | Build Windows NSIS installer (recording unsupported, see below) |
+| `npm run dist:linux` | Build Linux AppImage (recording unsupported, see below) |
 | `npm run typecheck` | Run TypeScript type checking |
+| `npm run test` | Run unit tests |
 | `npm run lint` | Run ESLint |
 | `npm run rebuild` | Rebuild native modules for Electron |
 | `npm run db:generate` | Generate database migration files |
 | `npm run db:migrate` | Apply database migrations |
+
+### Building for other platforms
+
+electron-builder is already configured for Windows (NSIS) and Linux (AppImage),
+so you can produce an installer on those platforms:
+
+```bash
+npm install && npm run rebuild && npm run dist:win
+```
+
+Build on the target OS. Cross-building is not supported here because
+`better-sqlite3` is a native module that has to be rebuilt for the host.
+
+What works in such a build: the full UI, MCP servers, workflows, settings,
+history, and markdown export. What does not: starting a recording — the VideoDB
+capture engine has no binary for the platform, and the app returns a clear
+error rather than crashing. Track
+[#29](https://github.com/video-db/call.md/issues/29) for progress.
 
 ## MCP Server Setup
 
@@ -273,6 +311,14 @@ Grant these in **System Preferences > Privacy & Security**.
 - Wait 5-10 seconds for first transcripts
 - Check internet connectivity
 
+**Transcription is in the wrong language:**
+- Set the meeting language in **Settings → Transcription** (it applies to the
+  next recording, not one already in progress)
+- If transcripts still come back in English, the language is not yet supported
+  by the VideoDB transcription backend. The app sends `language_code` and falls
+  back to the engine default rather than failing — see
+  [#25](https://github.com/video-db/call.md/issues/25)
+
 **Development issues:**
 - Rebuild native modules: `npm run rebuild`
 - Check Node.js version (requires 18+)
@@ -283,11 +329,40 @@ Grant these in **System Preferences > Privacy & Security**.
 Application data is stored in:
 ```
 ~/Library/Application Support/call-md/
+├── config.json             # Settings; credentials encrypted at rest
 ├── data/
-│   └── call-md.db    # SQLite database
+│   └── call-md.db          # SQLite database
 └── logs/
     └── app-YYYY-MM-DD.log  # Daily log files
 ```
+
+## Security
+
+Everything below stays on your machine; only audio, video and prompts go to
+VideoDB.
+
+- **Credentials at rest** — the VideoDB API key in `config.json` and in the
+  SQLite `users` table is encrypted through the OS keychain (Keychain on macOS,
+  DPAPI on Windows, libsecret on Linux). Access tokens are stored as SHA-256
+  digests, never in the clear. MCP server env vars, HTTP headers and OAuth
+  tokens are encrypted with AES-256-GCM under a keychain-wrapped key.
+- **Local API** — the tRPC server binds to `127.0.0.1` only and accepts CORS
+  requests from loopback origins, so nothing on your network can reach it.
+  Every procedure except registration requires a valid access token.
+- **File permissions** — the app data directory is `0700` and the database,
+  config, tokens and logs are `0600`.
+- **Renderer** — both windows run with `contextIsolation`, no Node integration,
+  and the Chromium sandbox enabled. The API key is never written to
+  localStorage.
+- **Webhooks** — workflow URLs are validated at save time *and* at call time.
+  Non-HTTP(S) schemes, embedded credentials, redirects, and hosts that resolve
+  to loopback, private, link-local or cloud-metadata addresses are rejected, so
+  a webhook cannot be used to reach inside your network.
+- **Logs** — credential-shaped fields are redacted before anything is written.
+
+Upgrades migrate existing data in place on first launch; you do not need to log
+in again. Report security issues via
+[GitHub Issues](https://github.com/video-db/call.md/issues).
 
 ## Community & Support
 

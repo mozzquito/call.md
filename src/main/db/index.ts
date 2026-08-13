@@ -2,10 +2,19 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
 import { app } from 'electron';
+import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import * as schema from './schema';
 import { logger } from '../lib/logger';
+import {
+  encryptSecret,
+  decryptSecret,
+  isEncrypted,
+  restrictPermissions,
+  FILE_MODE,
+  DIR_MODE,
+} from '../lib/secure-store';
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 let sqlite: Database.Database | null = null;
@@ -15,10 +24,31 @@ export function getDbPath(): string {
   const dbDir = path.join(userDataPath, 'data');
 
   if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+    fs.mkdirSync(dbDir, { recursive: true, mode: DIR_MODE });
   }
 
   return path.join(dbDir, 'call-md.db');
+}
+
+/**
+ * Access tokens are stored as a SHA-256 digest, never in the clear.
+ *
+ * The token is a random UUID, so a plain digest is enough: there is no
+ * guessable input space for an offline attack, and lookups stay exact-match.
+ */
+export function hashAccessToken(accessToken: string): string {
+  return crypto.createHash('sha256').update(accessToken).digest('hex');
+}
+
+/**
+ * Locks down the SQLite files, which hold transcripts and meeting content.
+ * better-sqlite3 creates them 0644; -wal and -shm are created alongside.
+ */
+function restrictDatabasePermissions(dbPath: string): void {
+  restrictPermissions(path.dirname(dbPath), DIR_MODE);
+  for (const suffix of ['', '-wal', '-shm']) {
+    restrictPermissions(`${dbPath}${suffix}`, FILE_MODE);
+  }
 }
 
 export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
@@ -28,6 +58,7 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
   logger.info({ dbPath }, 'Initializing database');
 
   sqlite = new Database(dbPath);
+  restrictDatabasePermissions(dbPath);
   db = drizzle(sqlite, { schema });
 
   sqlite.exec(`
@@ -265,6 +296,7 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
   ensureNudgesHistorySchema();
   ensureMCPServerColumns();
   ensureUserColumns();
+  ensureUserCredentialsProtected();
 
   seedDefaultCueCards();
 
@@ -378,6 +410,47 @@ function ensureUserColumns(): void {
   }
 }
 
+/**
+ * Upgrades rows written by builds that stored credentials in the clear:
+ * encrypts `api_key` and replaces `access_token` with its SHA-256 digest.
+ *
+ * Both are idempotent - already-migrated rows are left alone - so this can run
+ * on every startup. Sessions survive because the app sends the same token it
+ * saved in config.json, and lookups now hash before comparing.
+ */
+function ensureUserCredentialsProtected(): void {
+  if (!sqlite) return;
+
+  const rows = sqlite
+    .prepare('SELECT id, api_key, access_token FROM users')
+    .all() as { id: number; api_key: string; access_token: string }[];
+
+  const update = sqlite.prepare('UPDATE users SET api_key = ?, access_token = ? WHERE id = ?');
+  let migrated = 0;
+
+  for (const row of rows) {
+    const needsKeyEncryption = !!row.api_key && !isEncrypted(row.api_key);
+    const needsTokenHashing = !!row.access_token && !isHashedToken(row.access_token);
+
+    if (!needsKeyEncryption && !needsTokenHashing) continue;
+
+    update.run(
+      needsKeyEncryption ? encryptSecret(row.api_key) : row.api_key,
+      needsTokenHashing ? hashAccessToken(row.access_token) : row.access_token,
+      row.id
+    );
+    migrated += 1;
+  }
+
+  if (migrated > 0) {
+    logger.info({ migrated }, 'Migrated stored user credentials to protected storage');
+  }
+}
+
+function isHashedToken(value: string): boolean {
+  return /^[a-f0-9]{64}$/.test(value);
+}
+
 export function getDatabase(): ReturnType<typeof drizzle<typeof schema>> {
   if (!db) {
     throw new Error('Database not initialized. Call initDatabase() first.');
@@ -394,28 +467,65 @@ export function closeDatabase(): void {
   }
 }
 
-export function getUserByAccessToken(accessToken: string) {
-  const database = getDatabase();
-  return database
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.accessToken, accessToken))
-    .get();
+/**
+ * Restores the plaintext API key on a row read back from the database.
+ * Every caller needs the real key to talk to VideoDB.
+ */
+function withDecryptedApiKey<T extends { apiKey: string } | undefined>(user: T): T {
+  if (!user) return user;
+  return { ...user, apiKey: decryptSecret(user.apiKey) };
 }
 
+export function getUserByAccessToken(accessToken: string) {
+  const database = getDatabase();
+  const user = database
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.accessToken, hashAccessToken(accessToken)))
+    .get();
+
+  return withDecryptedApiKey(user);
+}
+
+/**
+ * Creates a user, storing the API key encrypted and the access token hashed.
+ * The returned row carries the plaintext API key for immediate use; the caller
+ * already holds the plaintext access token it passed in.
+ */
 export function createUser(data: schema.NewUser) {
   const database = getDatabase();
-  return database.insert(schema.users).values(data).returning().get();
+  const user = database
+    .insert(schema.users)
+    .values({
+      ...data,
+      apiKey: encryptSecret(data.apiKey),
+      accessToken: hashAccessToken(data.accessToken),
+    })
+    .returning()
+    .get();
+
+  return withDecryptedApiKey(user);
 }
 
 export function updateUser(id: number, data: Partial<schema.User>) {
   const database = getDatabase();
-  return database
+
+  const values: Partial<schema.User> = { ...data };
+  if (typeof values.apiKey === 'string') {
+    values.apiKey = encryptSecret(values.apiKey);
+  }
+  if (typeof values.accessToken === 'string') {
+    values.accessToken = hashAccessToken(values.accessToken);
+  }
+
+  const user = database
     .update(schema.users)
-    .set(data)
+    .set(values)
     .where(eq(schema.users.id, id))
     .returning()
     .get();
+
+  return withDecryptedApiKey(user);
 }
 
 export function getRecordingById(id: number) {
