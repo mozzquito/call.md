@@ -2,6 +2,9 @@
 
 Branch: `fix/security-hardening-and-issues`
 
+> Also on this branch: a 2 hour recording cutoff. See
+> [Recording length limit](#recording-length-limit) at the end.
+
 Covers the three open issues on `video-db/call.md`:
 
 - [#27](https://github.com/video-db/call.md/issues/27) — Security & Privacy Audit
@@ -149,3 +152,60 @@ migration, new credentials never appear in the DB file, and a legacy plaintext
   transcripts in SQLite would break search and every existing query; the file is
   now `0600` inside a `0700` directory, which is the meaningful part of that
   finding. Full-database encryption (SQLCipher) is a separate piece of work.
+
+---
+
+# Recording length limit
+
+Requested separately: recordings should auto-cut after 2 hours.
+
+## Design
+
+- [x] Limit lives in the **main process** (`recording-limit.service.ts`).
+      Chromium throttles timers in hidden windows and a two-hour meeting means
+      the app is in the tray for most of it, so a renderer timer is not
+      trustworthy for this.
+- [x] Counts **recording time, not wall-clock**. Pausing banks the elapsed
+      total and stops the clock, so the cutoff lands exactly when the on-screen
+      timer reads 2:00:00. A meeting paused for three hours is not punished for
+      it.
+- [x] Only a full pause counts. The renderer uses one IPC for both the pause
+      button (all three tracks) and per-stream toggles (one track), so
+      `isFullSessionToggle()` distinguishes them.
+- [x] The cutoff **asks the renderer to run its normal stop flow** rather than
+      tearing down the capture client directly. The renderer's path is what
+      finalises the recording, generates the meeting summary and resets the
+      session stores.
+- [x] Main-process fallback after 20s if no renderer acts (window gone), gated
+      on the session id so it can never stop a *newer* recording.
+- [x] Warning 5 minutes out, delivered as an OS notification.
+- [x] Cutoff cleared on stop and on both cleanup paths.
+
+## Tunables — `src/shared/constants/recording.ts`
+
+| Constant | Value |
+| --- | --- |
+| `MAX_RECORDING_DURATION_MS` | 2 hours |
+| `RECORDING_LIMIT_WARNING_MS` | 5 minutes |
+| `RECORDING_LIMIT_STOP_GRACE_MS` | 20 seconds |
+
+## Review
+
+10 tests in `tests/recording-limit.test.ts`, driven by `node:test` mock timers
+so a two-hour limit runs instantly. They cover the cutoff boundary, the single
+warning, pause/resume arithmetic, disarming on stop, tracker replacement, and
+out-of-order pause/resume calls.
+
+Those tests caught a real bug before it shipped: `getElapsedMs()` tested
+`segmentStartedAt` for truthiness, but `null` is the paused sentinel — a
+timestamp of `0` would have frozen the clock. Production `Date.now()` is never
+0, so only the mocked clock exposed it. Fixed to compare against `null`.
+
+Not verified end to end: a real two-hour recording. The timer semantics are
+covered by unit tests and the main-to-renderer event uses the same
+`sendRecorderEvent` channel every other recorder event already runs on.
+
+Known limit: if the 20s fallback fires, the capture stops and the export poller
+still finalises the video, but the copilot summary is skipped because no
+renderer ran the stop flow. That path only happens when the window is gone. The
+widget's Stop button has the same pre-existing gap.

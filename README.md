@@ -104,6 +104,7 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 - **Google Calendar Integration** - Sync upcoming meetings
 
 ### Privacy & Storage
+- **2 Hour Recording Limit** - Recordings stop themselves after 2 hours of recording time, with a warning 5 minutes before
 - **Local-First** - SQLite database, all data stored on your machine
 - **Screen & Audio Recording** - Capture screen, microphone, and system audio simultaneously
 - **Recording History** - Browse and review past recordings with full transcripts
@@ -310,6 +311,15 @@ Grant these in **System Preferences > Privacy & Security**.
 - Ensure mic and system audio are enabled in settings
 - Wait 5-10 seconds for first transcripts
 - Check internet connectivity
+
+**A recording stopped on its own:**
+- Recordings are capped at 2 hours and stop automatically when they reach it.
+  You get a system notification 5 minutes before, and the recording is saved
+  and summarised exactly as if you had pressed Stop
+- Paused time does not count toward the limit, so the cutoff matches the
+  elapsed timer shown during the meeting
+- To change the cap, edit `MAX_RECORDING_DURATION_MS` in
+  `src/shared/constants/recording.ts` and rebuild
 
 **Transcription is in the wrong language:**
 - Set the meeting language in **Settings → Transcription** (it applies to the

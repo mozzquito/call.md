@@ -20,8 +20,22 @@ import {
   updateWidgetVisualAnalysis,
   clearWidgetState,
 } from './widget';
+import {
+  startRecordingLimit,
+  pauseRecordingLimit,
+  resumeRecordingLimit,
+  clearRecordingLimit,
+} from '../services/recording-limit.service';
+import {
+  MAX_RECORDING_DURATION_MS,
+  RECORDING_LIMIT_STOP_GRACE_MS,
+} from '../../shared/constants/recording';
 
 const logger = createChildLogger('ipc-capture');
+
+/** Tracks that make up the whole session, in the order the renderer sends them. */
+const ALL_TRACKS = ['mic', 'system_audio', 'screen'] as const;
+type TrackName = (typeof ALL_TRACKS)[number];
 
 let mainWindow: BrowserWindow | null = null;
 let captureClient: CaptureClient | null = null;
@@ -374,9 +388,66 @@ function removeCaptureEventListeners(): void {
   });
 }
 
+/**
+ * Whether a pause/resume call covers the whole session rather than one stream.
+ *
+ * The renderer uses the same IPC for both: the pause button sends every track,
+ * while toggling a single stream sends just that one. Only the former should
+ * pause the recording-length clock.
+ */
+function isFullSessionToggle(tracks: string[]): boolean {
+  const requested = new Set(tracks);
+  return requested.size === ALL_TRACKS.length && ALL_TRACKS.every((track) => requested.has(track));
+}
+
+/**
+ * Arms the recording-length cutoff for the session that just started.
+ *
+ * The stop itself is handed to the renderer, because its stop path also
+ * finalises the recording, generates the meeting summary and resets the
+ * session stores - none of which happen if the capture client is simply torn
+ * down here. If no renderer picks it up (window closed), the fallback below
+ * stops the capture anyway so a recording can never run past the limit.
+ */
+function armRecordingLimit(): void {
+  startRecordingLimit({
+    onWarning: (msRemaining) => {
+      sendRecorderEvent({
+        event: 'recording:limit-warning',
+        data: { msRemaining, limitMs: MAX_RECORDING_DURATION_MS },
+      });
+    },
+
+    onLimitReached: () => {
+      const limitedSessionId = currentSessionId;
+
+      sendRecorderEvent({
+        event: 'recording:limit-reached',
+        data: { limitMs: MAX_RECORDING_DURATION_MS },
+      });
+
+      setTimeout(() => {
+        // Stop only if this exact session is still running: the renderer may
+        // already have stopped it, and the user may have started a new one.
+        if (!captureClient || currentSessionId !== limitedSessionId) return;
+
+        logger.warn(
+          { sessionId: limitedSessionId, graceMs: RECORDING_LIMIT_STOP_GRACE_MS },
+          'Renderer did not stop the recording at the limit, stopping from the main process'
+        );
+        stopRecordingInternal().catch((error) => {
+          logger.error({ error }, 'Fallback stop at the recording limit failed');
+        });
+      }, RECORDING_LIMIT_STOP_GRACE_MS);
+    },
+  });
+}
+
 // Function to stop recording (used by widget and IPC handler)
 async function stopRecordingInternal(): Promise<{ success: boolean; error?: string }> {
   logger.info('Stopping recording (internal)');
+
+  clearRecordingLimit();
 
   // Capture session info before cleanup
   const sessionIdForPoller = currentSessionId;
@@ -468,13 +539,15 @@ export function setupCaptureHandlers(): void {
     // pause
     async () => {
       if (captureClient) {
-        await captureClient.pauseTracks(['mic', 'system_audio', 'screen'] as ('mic' | 'system_audio' | 'screen')[]);
+        await captureClient.pauseTracks([...ALL_TRACKS] as TrackName[]);
+        pauseRecordingLimit();
       }
     },
     // resume
     async () => {
       if (captureClient) {
-        await captureClient.resumeTracks(['mic', 'system_audio', 'screen'] as ('mic' | 'system_audio' | 'screen')[]);
+        await captureClient.resumeTracks([...ALL_TRACKS] as TrackName[]);
+        resumeRecordingLimit();
       }
     },
     // stop
@@ -638,6 +711,9 @@ export function setupCaptureHandlers(): void {
           throw captureError;
         }
 
+        // Cut the recording off once it reaches the maximum length
+        armRecordingLimit();
+
         // Manually emit recording:started immediately (matches Python behavior, doesn't wait for SDK event)
         logger.info({ sessionId: config.sessionId }, 'Emitting recording:started event to renderer');
         sendRecorderEvent({
@@ -699,7 +775,12 @@ export function setupCaptureHandlers(): void {
     'recorder-pause-tracks',
     async (_event, tracks: string[]): Promise<void> => {
       if (captureClient) {
-        await captureClient.pauseTracks(tracks as ('mic' | 'system_audio' | 'screen')[]);
+        await captureClient.pauseTracks(tracks as TrackName[]);
+
+        // Pausing a single stream is not pausing the meeting.
+        if (isFullSessionToggle(tracks)) {
+          pauseRecordingLimit();
+        }
       }
     }
   );
@@ -708,7 +789,11 @@ export function setupCaptureHandlers(): void {
     'recorder-resume-tracks',
     async (_event, tracks: string[]): Promise<void> => {
       if (captureClient) {
-        await captureClient.resumeTracks(tracks as ('mic' | 'system_audio' | 'screen')[]);
+        await captureClient.resumeTracks(tracks as TrackName[]);
+
+        if (isFullSessionToggle(tracks)) {
+          resumeRecordingLimit();
+        }
       }
     }
   );
@@ -787,6 +872,8 @@ export function setupCaptureHandlers(): void {
 
 // Cleanup capture client for synchronous cleanup (doesn't wait for shutdown)
 function cleanupCapture(): void {
+  clearRecordingLimit();
+
   if (captureClient) {
     removeCaptureEventListeners();
 
@@ -801,6 +888,8 @@ function cleanupCapture(): void {
 
 // Async cleanup that waits for shutdown to complete (for tests or external cleanup)
 export async function cleanupCaptureAsync(): Promise<void> {
+  clearRecordingLimit();
+
   if (captureClient) {
     removeCaptureEventListeners();
 

@@ -20,12 +20,27 @@ export interface RecorderEvent {
     | 'recording:started'
     | 'recording:stopped'
     | 'recording:error'
+    | 'recording:limit-warning'
+    | 'recording:limit-reached'
     | 'transcript'
     | 'visual_index'
     | 'upload:progress'
     | 'upload:complete'
     | 'error';
   data?: unknown;
+}
+
+/** Payload for `recording:limit-warning`. */
+export interface RecordingLimitWarningEvent {
+  /** Recording time left before the cutoff, in ms. */
+  msRemaining: number;
+  /** The maximum recording length, in ms. */
+  limitMs: number;
+}
+
+/** Payload for `recording:limit-reached`. */
+export interface RecordingLimitReachedEvent {
+  limitMs: number;
 }
 
 export interface TranscriptEvent {

@@ -564,8 +564,10 @@ export function App() {
   const { allGranted, loading: permissionsLoading, checkPermissions } = usePermissions();
   const { prepareNewSession, prepareNewSessionWithInfo, waitForIdle } = useSessionLifecycle();
 
-  // Global listener for recorder events - persists during navigation
-  useGlobalRecorderEvents();
+  // Global listener for recorder events - persists during navigation.
+  // The main process cuts recordings off at the maximum length and asks us to
+  // run the normal stop flow, so the recording is finalised like any other.
+  useGlobalRecorderEvents({ onRecordingLimitReached: stopRecording });
 
   const isAuthenticated = configStore.isAuthenticated();
 
