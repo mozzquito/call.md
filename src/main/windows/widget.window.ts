@@ -89,7 +89,8 @@ export function createWidgetWindow(): BrowserWindow {
       preload: path.join(__dirname, '..', '..', 'preload', 'widget.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,
+      // The widget preload only uses contextBridge/ipcRenderer.
+      sandbox: true,
     },
   });
 

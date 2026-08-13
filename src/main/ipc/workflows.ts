@@ -7,6 +7,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { v4 as uuid } from 'uuid';
 import { createChildLogger } from '../lib/logger';
+import { validateWebhookUrl } from '../lib/url-guard';
 import {
   getAllWorkflows,
   getWorkflowById,
@@ -93,6 +94,12 @@ export function setupWorkflowHandlers(): void {
     error?: string;
   }> => {
     try {
+      const validation = await validateWebhookUrl(request.webhookUrl);
+      if (!validation.valid) {
+        logger.warn({ error: validation.error }, 'Rejected workflow with unsafe webhook URL');
+        return { success: false, error: validation.error };
+      }
+
       const workflow = createWorkflow({
         id: uuid(),
         name: request.name,
@@ -130,6 +137,14 @@ export function setupWorkflowHandlers(): void {
       const existing = getWorkflowById(id);
       if (!existing) {
         return { success: false, error: 'Workflow not found' };
+      }
+
+      if (request.webhookUrl !== undefined) {
+        const validation = await validateWebhookUrl(request.webhookUrl);
+        if (!validation.valid) {
+          logger.warn({ workflowId: id, error: validation.error }, 'Rejected unsafe webhook URL');
+          return { success: false, error: validation.error };
+        }
       }
 
       const workflow = updateWorkflow(id, {

@@ -4,14 +4,29 @@ import { useTranscriptionStore } from '../stores/transcription.store';
 import { useVisualIndexStore } from '../stores/visual-index.store';
 import { useCopilotStore } from '../stores/copilot.store';
 import { getElectronAPI } from '../api/ipc';
-import type { RecorderEvent, TranscriptEvent, VisualIndexEvent } from '../../shared/types/ipc.types';
+import { formatDurationLabel } from '../../shared/constants/recording';
+import type {
+  RecorderEvent,
+  TranscriptEvent,
+  VisualIndexEvent,
+  RecordingLimitWarningEvent,
+  RecordingLimitReachedEvent,
+} from '../../shared/types/ipc.types';
+
+interface GlobalRecorderEventOptions {
+  /**
+   * Called when the recording hits the maximum length. Should run the normal
+   * stop flow so the recording is finalised and the summary generated.
+   */
+  onRecordingLimitReached?: () => void | Promise<void>;
+}
 
 /**
  * Global hook to listen for recorder events from the main process.
  * This should be called ONCE at the App level to ensure transcript events
  * are captured even when navigating between pages.
  */
-export function useGlobalRecorderEvents() {
+export function useGlobalRecorderEvents(options: GlobalRecorderEventOptions = {}) {
   const sessionStore = useSessionStore();
   const transcriptionStore = useTranscriptionStore();
   const visualIndexStore = useVisualIndexStore();
@@ -20,6 +35,11 @@ export function useGlobalRecorderEvents() {
   const sessionStoreRef = useRef(sessionStore);
   const transcriptionStoreRef = useRef(transcriptionStore);
   const visualIndexStoreRef = useRef(visualIndexStore);
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   // Keep refs updated
   useEffect(() => {
@@ -56,6 +76,35 @@ export function useGlobalRecorderEvents() {
           session.setError(String(event.data));
           session.setStatus('idle');
           break;
+
+        case 'recording:limit-warning': {
+          // A two-hour meeting usually means the app is in the tray, so warn
+          // through the OS rather than with an in-app toast nobody will see.
+          const warning = event.data as RecordingLimitWarningEvent;
+          const remaining = formatDurationLabel(warning.msRemaining);
+          const limit = formatDurationLabel(warning.limitMs);
+
+          getElectronAPI()?.app.showNotification(
+            'Recording ends soon',
+            `This recording reaches the ${limit} limit in ${remaining} and will stop automatically.`
+          );
+          break;
+        }
+
+        case 'recording:limit-reached': {
+          const reached = event.data as RecordingLimitReachedEvent;
+          const limit = formatDurationLabel(reached.limitMs);
+
+          getElectronAPI()?.app.showNotification(
+            'Recording stopped',
+            `The ${limit} recording limit was reached. Your recording is being saved.`
+          );
+
+          // Run the same stop path as the Stop button so the recording is
+          // finalised, the summary is generated and the stores are reset.
+          void optionsRef.current.onRecordingLimitReached?.();
+          break;
+        }
 
         case 'transcript':
           if (event.data && transcription.enabled) {

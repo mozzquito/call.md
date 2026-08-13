@@ -4,6 +4,15 @@ import fs from 'fs';
 import type { AppConfig, RuntimeConfig } from '../../shared/schemas/config.schema';
 import type { GoogleTokens, GoogleOAuthConfig } from '../../shared/types/calendar.types';
 import { logger } from './logger';
+import {
+  encryptSecret,
+  decryptSecret,
+  isEncrypted,
+  writeFileSecure,
+  restrictPermissions,
+  FILE_MODE,
+  DIR_MODE,
+} from './secure-store';
 
 const CONFIG_FILENAME = 'config.json';
 const RUNTIME_FILENAME = 'runtime.json';
@@ -11,9 +20,49 @@ const AUTH_CONFIG_FILENAME = 'auth_config.json';
 const GOOGLE_OAUTH_FILENAME = 'google_oauth.json';
 const GOOGLE_TOKENS_FILENAME = 'google_tokens.enc';
 const GOOGLE_TOKENS_FALLBACK_FILENAME = 'google_tokens.json';
+const ENCRYPTION_KEY_FILENAME = '.mcp-encryption-key';
 
 export function getConfigPath(): string {
   return path.join(app.getPath('userData'), CONFIG_FILENAME);
+}
+
+/**
+ * Tightens permissions on the app data directory and the files inside it that
+ * hold recordings metadata, transcripts and tokens.
+ *
+ * Electron creates userData as 0755, which leaves everything readable by other
+ * local accounts. Run once at startup, before any of it is opened.
+ */
+export function secureUserDataDir(): void {
+  const userDataPath = app.getPath('userData');
+
+  restrictPermissions(userDataPath, DIR_MODE);
+
+  const sensitivePaths = [
+    path.join(userDataPath, CONFIG_FILENAME),
+    path.join(userDataPath, GOOGLE_TOKENS_FILENAME),
+    path.join(userDataPath, GOOGLE_TOKENS_FALLBACK_FILENAME),
+    path.join(userDataPath, ENCRYPTION_KEY_FILENAME),
+  ];
+
+  for (const sensitivePath of sensitivePaths) {
+    restrictPermissions(sensitivePath, FILE_MODE);
+  }
+
+  for (const dirName of ['data', 'logs']) {
+    const dirPath = path.join(userDataPath, dirName);
+    restrictPermissions(dirPath, DIR_MODE);
+
+    try {
+      if (fs.existsSync(dirPath)) {
+        for (const entry of fs.readdirSync(dirPath)) {
+          restrictPermissions(path.join(dirPath, entry), FILE_MODE);
+        }
+      }
+    } catch (error) {
+      logger.warn({ error, dirPath }, 'Failed to restrict permissions on app data directory');
+    }
+  }
 }
 
 export function getRuntimeConfigPath(): string {
@@ -32,12 +81,56 @@ export function getAuthConfigPath(): string {
   return path.join(app.getAppPath(), AUTH_CONFIG_FILENAME);
 }
 
+/**
+ * Fields in config.json that hold secrets and are encrypted at rest.
+ */
+const SECRET_CONFIG_KEYS = ['accessToken', 'apiKey'] as const;
+
+function decryptConfigSecrets(config: AppConfig): { config: AppConfig; hadPlaintext: boolean } {
+  let hadPlaintext = false;
+
+  for (const key of SECRET_CONFIG_KEYS) {
+    const value = config[key];
+    if (typeof value !== 'string' || !value) continue;
+
+    if (isEncrypted(value)) {
+      config[key] = decryptSecret(value);
+    } else {
+      // Written by a build that stored secrets in the clear.
+      hadPlaintext = true;
+    }
+  }
+
+  return { config, hadPlaintext };
+}
+
+function encryptConfigSecrets(config: AppConfig): AppConfig {
+  const encrypted: AppConfig = { ...config };
+
+  for (const key of SECRET_CONFIG_KEYS) {
+    const value = encrypted[key];
+    if (typeof value === 'string' && value && !isEncrypted(value)) {
+      encrypted[key] = encryptSecret(value);
+    }
+  }
+
+  return encrypted;
+}
+
 export function loadAppConfig(): AppConfig {
   const configPath = getConfigPath();
   try {
     if (fs.existsSync(configPath)) {
       const data = fs.readFileSync(configPath, 'utf-8');
-      return JSON.parse(data) as AppConfig;
+      const { config, hadPlaintext } = decryptConfigSecrets(JSON.parse(data) as AppConfig);
+
+      // Upgrade legacy plaintext configs the first time they are read.
+      if (hadPlaintext) {
+        logger.info({ configPath }, 'Migrating plaintext app config to encrypted storage');
+        saveAppConfig(config);
+      }
+
+      return config;
     }
   } catch (error) {
     logger.error({ error, configPath }, 'Failed to load app config');
@@ -48,11 +141,7 @@ export function loadAppConfig(): AppConfig {
 export function saveAppConfig(config: AppConfig): void {
   const configPath = getConfigPath();
   try {
-    const dir = path.dirname(configPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    writeFileSecure(configPath, JSON.stringify(encryptConfigSecrets(config), null, 2));
     logger.info({ configPath }, 'App config saved');
   } catch (error) {
     logger.error({ error, configPath }, 'Failed to save app config');
@@ -162,15 +251,15 @@ export function saveGoogleTokens(tokens: GoogleTokens): void {
 
     if (safeStorage.isEncryptionAvailable()) {
       const encrypted = safeStorage.encryptString(json);
-      fs.writeFileSync(tokenPath, encrypted);
+      writeFileSecure(tokenPath, encrypted);
       // Clean up fallback if it exists
       if (fs.existsSync(fallbackPath)) {
         fs.unlinkSync(fallbackPath);
       }
       logger.info('Google tokens saved (encrypted)');
     } else {
-      // Fallback to plain JSON (Linux without keyring)
-      fs.writeFileSync(fallbackPath, json, 'utf-8');
+      // Fallback to plain JSON (Linux without keyring) - owner-readable only
+      writeFileSecure(fallbackPath, json);
       logger.warn('Google tokens saved (unencrypted - no keyring available)');
     }
   } catch (error) {

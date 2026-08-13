@@ -3,6 +3,12 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { logger } from '../lib/logger';
+import {
+  encryptSecret,
+  decryptSecret,
+  isEncrypted,
+  writeFileSecure,
+} from '../lib/secure-store';
 
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32; // 256 bits
@@ -21,14 +27,22 @@ function getKeyPath(): string {
 }
 
 /**
+ * Persists the key, wrapped by the OS keyring when one is available.
+ *
+ * Without this the key sits in plaintext beside the data it protects, which
+ * makes the encryption cosmetic against anyone who can read the app data dir.
+ */
+function writeKey(key: Buffer): void {
+  writeFileSecure(getKeyPath(), encryptSecret(key.toString('hex')));
+}
+
+/**
  * Generates a new encryption key and saves it to disk
  */
 function generateKey(): Buffer {
   const key = crypto.randomBytes(KEY_LENGTH);
-  const keyPath = getKeyPath();
 
-  // Write key with restricted permissions
-  fs.writeFileSync(keyPath, key.toString('hex'), { mode: 0o600 });
+  writeKey(key);
   logger.info('Generated new MCP encryption key');
 
   return key;
@@ -46,12 +60,19 @@ function loadKey(): Buffer {
 
   try {
     if (fs.existsSync(keyPath)) {
-      const keyHex = fs.readFileSync(keyPath, 'utf-8');
+      const stored = fs.readFileSync(keyPath, 'utf-8').trim();
+      const wasWrapped = isEncrypted(stored);
+      const keyHex = wasWrapped ? decryptSecret(stored) : stored;
       encryptionKey = Buffer.from(keyHex, 'hex');
 
       if (encryptionKey.length !== KEY_LENGTH) {
         logger.warn('Invalid encryption key length, regenerating');
         encryptionKey = generateKey();
+      } else if (!wasWrapped) {
+        // Upgrade a key written in the clear by an older build. The key value
+        // is unchanged, so anything already encrypted with it still decrypts.
+        logger.info('Wrapping plaintext MCP encryption key with OS keyring');
+        writeKey(encryptionKey);
       }
     } else {
       encryptionKey = generateKey();

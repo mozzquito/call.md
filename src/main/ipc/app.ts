@@ -1,8 +1,10 @@
 import { ipcMain, shell, Notification, BrowserWindow } from 'electron';
-import { loadAppConfig, loadRuntimeConfig, clearAppConfig } from '../lib/config';
+import { loadAppConfig, loadRuntimeConfig, clearAppConfig, saveAppConfig } from '../lib/config';
 import { VideoDBService } from '../services/videodb.service';
 import { getServerStatus } from '../server';
 import { createChildLogger } from '../lib/logger';
+import { SaveSettingsInputSchema } from '../../shared/schemas/config.schema';
+import { AUTO_LANGUAGE, isSupportedLanguage } from '../../shared/constants/languages';
 import os from 'os';
 import path from 'path';
 
@@ -16,6 +18,7 @@ export function setupAppHandlers(): void {
       userName?: string;
       apiKey?: string;
       apiUrl?: string;
+      transcriptionLanguage: string;
     }> => {
       const appConfig = loadAppConfig();
       const runtimeConfig = loadRuntimeConfig();
@@ -25,7 +28,40 @@ export function setupAppHandlers(): void {
         userName: appConfig.userName,
         apiKey: appConfig.apiKey,
         apiUrl: runtimeConfig.apiUrl,
+        transcriptionLanguage: appConfig.transcriptionLanguage || AUTO_LANGUAGE,
       };
+    }
+  );
+
+  /**
+   * Persists settings to the encrypted app config.
+   *
+   * This is where credentials live: the renderer keeps them in memory only, so
+   * the main process is the source of truth across restarts.
+   */
+  ipcMain.handle(
+    'save-settings',
+    async (_event, settings: unknown): Promise<{ success: boolean; error?: string }> => {
+      const parsed = SaveSettingsInputSchema.safeParse(settings);
+      if (!parsed.success) {
+        logger.warn({ error: parsed.error.message }, 'Rejected invalid settings payload');
+        return { success: false, error: 'Invalid settings' };
+      }
+
+      const { transcriptionLanguage } = parsed.data;
+      if (transcriptionLanguage !== undefined && !isSupportedLanguage(transcriptionLanguage)) {
+        return { success: false, error: `Unsupported language "${transcriptionLanguage}"` };
+      }
+
+      try {
+        // Merge so a partial update never clears the other fields.
+        saveAppConfig({ ...loadAppConfig(), ...parsed.data });
+        return { success: true };
+      } catch (error) {
+        const err = error as Error;
+        logger.error({ error: err.message }, 'Failed to save settings');
+        return { success: false, error: err.message };
+      }
     }
   );
 
@@ -79,6 +115,13 @@ export function setupAppHandlers(): void {
   );
 
   ipcMain.handle('open-player-window', async (_event, url: string): Promise<void> => {
+    // Only ever used for VideoDB player URLs; refuse anything that could load
+    // local files or a custom scheme into a privileged window.
+    if (!/^https?:\/\//i.test(url)) {
+      logger.warn({ url }, 'Refused to open player window for non-HTTP URL');
+      return;
+    }
+
     const playerWindow = new BrowserWindow({
       width: 1024,
       height: 768,
@@ -86,6 +129,7 @@ export function setupAppHandlers(): void {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        sandbox: true,
       },
     });
 

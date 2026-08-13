@@ -10,14 +10,42 @@ const logger = createChildLogger('http-server');
 
 let server: ReturnType<typeof serve> | null = null;
 
+/**
+ * The API only ever serves this app's own renderer, so it listens on loopback
+ * only. Binding the default (all interfaces) would expose meetings, transcripts
+ * and the VideoDB API key to anything on the same network.
+ */
+const BIND_HOSTNAME = '127.0.0.1';
+
+/**
+ * Only the app's own renderer may call the API. Electron renderers load from
+ * `file://` (origin `null`) in production and from the Vite dev server in
+ * development, so accept those plus loopback origins on any port.
+ */
+function isAllowedOrigin(origin: string): string | null {
+  if (!origin || origin === 'null') return origin || 'null';
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'http:' && protocol !== 'https:') return null;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1') {
+      return origin;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export function createServer(port: number) {
   const app = new Hono();
 
-  // CORS middleware
+  // CORS middleware — loopback only (see isAllowedOrigin)
   app.use(
     '*',
     cors({
-      origin: '*',
+      origin: isAllowedOrigin,
       allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowHeaders: ['Content-Type', 'x-access-token'],
     })
@@ -60,11 +88,12 @@ export async function startServer(port: number, maxRetries: number = 10): Promis
         {
           fetch: app.fetch,
           port: attemptPort,
+          hostname: BIND_HOSTNAME,
         },
         (info) => {
           server = serverInstance;
           currentPort = info.port;
-          logger.info({ port: info.port }, 'HTTP server started');
+          logger.info({ port: info.port, hostname: BIND_HOSTNAME }, 'HTTP server started');
           resolve(info.port);
         }
       );

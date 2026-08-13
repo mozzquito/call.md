@@ -493,13 +493,20 @@ export function App() {
   // Recording ID to navigate to after recording ends
   const [pendingRecordingNavigation, setPendingRecordingNavigation] = useState<number | null>(null);
   // Settings tab to show when navigating to settings
-  const [initialSettingsTab, setInitialSettingsTab] = useState<'account' | 'notifications' | 'mcpServers' | 'workflows' | null>(null);
+  const [initialSettingsTab, setInitialSettingsTab] = useState<'account' | 'notifications' | 'transcription' | 'mcpServers' | 'workflows' | null>(null);
   // Pending tab change when user needs to confirm discarding meeting setup
   const [pendingTabChange, setPendingTabChange] = useState<Tab | null>(null);
 
   const configStore = useConfigStore();
   const sessionStore = useSessionStore();
   const meetingSetupStore = useMeetingSetupStore();
+
+  // The API key and language preference live in the main process, not in
+  // localStorage, so pull them in once on startup.
+  const hydrateConfig = useConfigStore((state) => state.hydrateFromMain);
+  React.useEffect(() => {
+    void hydrateConfig();
+  }, [hydrateConfig]);
 
   // Check if meeting setup has any user-entered data
   const hasMeetingSetupData = () => {
@@ -557,8 +564,10 @@ export function App() {
   const { allGranted, loading: permissionsLoading, checkPermissions } = usePermissions();
   const { prepareNewSession, prepareNewSessionWithInfo, waitForIdle } = useSessionLifecycle();
 
-  // Global listener for recorder events - persists during navigation
-  useGlobalRecorderEvents();
+  // Global listener for recorder events - persists during navigation.
+  // The main process cuts recordings off at the maximum length and asks us to
+  // run the normal stop flow, so the recording is finalised like any other.
+  useGlobalRecorderEvents({ onRecordingLimitReached: stopRecording });
 
   const isAuthenticated = configStore.isAuthenticated();
 
