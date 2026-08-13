@@ -95,13 +95,13 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
 
   // Show the recordings grid
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="px-8 pt-8 pb-6">
-        <h1 className="text-[28px] font-semibold text-black tracking-tight">
+        <h1 className="text-[28px] font-semibold text-foreground tracking-tight">
           Meeting Recordings
         </h1>
-        <p className="text-[15px] text-[#6b6b6b] mt-1">
+        <p className="text-[15px] text-muted-foreground mt-1">
           View and manage your past meeting recordings
         </p>
       </div>
@@ -109,13 +109,13 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
       {/* Search Bar */}
       <div className="px-8 pb-6">
         <div className="relative max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-[#969696]" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search recordings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#e0e0e0] bg-[#fafafa] text-[14px] text-black placeholder:text-[#969696] focus:outline-none focus:border-[#c0c0c0] focus:bg-white transition-colors"
+            className="w-full h-11 pl-11 pr-4 rounded-xl border border-input bg-background text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-input focus:bg-card transition-colors"
           />
         </div>
       </div>
@@ -124,20 +124,20 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
       <div className="flex-1 overflow-y-auto px-8 pb-8">
         {isLoading ? (
           <div className="flex items-center justify-center h-48">
-            <RefreshCw className="h-6 w-6 animate-spin text-[#969696]" />
+            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : filteredRecordings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-[#6b6b6b]">
-            <Inbox className="h-12 w-12 mb-3 text-[#c0c0c0]" />
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+            <Inbox className="h-12 w-12 mb-3 text-muted-foreground/70" />
             {searchQuery ? (
               <>
                 <p className="text-[15px] font-medium">No matching recordings</p>
-                <p className="text-[13px] text-[#969696] mt-1">Try a different search term</p>
+                <p className="text-[13px] text-muted-foreground mt-1">Try a different search term</p>
               </>
             ) : (
               <>
                 <p className="text-[15px] font-medium">No recordings yet</p>
-                <p className="text-[13px] text-[#969696] mt-1">Start a recording to see it here</p>
+                <p className="text-[13px] text-muted-foreground mt-1">Start a recording to see it here</p>
               </>
             )}
           </div>

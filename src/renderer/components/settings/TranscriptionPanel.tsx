@@ -52,20 +52,20 @@ export function TranscriptionPanel() {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <div className="bg-white border border-[#e4e4ec] rounded-[14px] overflow-hidden">
-        <div className="flex items-center justify-between px-[20px] py-[16px] border-b border-[#ededf3]">
+      <div className="bg-card border border-border rounded-[14px] overflow-hidden">
+        <div className="flex items-center justify-between px-[20px] py-[16px] border-b border-border">
           <div>
-            <h3 className="text-[16px] font-semibold text-[#141420] leading-[22.5px]">
+            <h3 className="text-[16px] font-semibold text-foreground leading-[22.5px]">
               Transcription Language
             </h3>
-            <p className="text-[13px] text-[#969696] mt-[2px]">
+            <p className="text-[13px] text-muted-foreground mt-[2px]">
               Applies to the next meeting you record
             </p>
           </div>
           {isSaving ? (
-            <Loader2 className="w-[16px] h-[16px] text-[#ec5b16] animate-spin" />
+            <Loader2 className="w-[16px] h-[16px] text-primary animate-spin" />
           ) : savedAt ? (
-            <span className="flex items-center gap-[4px] text-[13px] font-medium text-[#059669]">
+            <span className="flex items-center gap-[4px] text-[13px] font-medium text-emerald-600 dark:text-emerald-400">
               <Check className="w-[16px] h-[16px]" />
               Saved
             </span>
@@ -82,20 +82,20 @@ export function TranscriptionPanel() {
                 onClick={() => handleSelect(language.code)}
                 disabled={isSaving}
                 className={`flex items-center justify-between w-full px-[20px] py-[14px] text-left transition-colors disabled:opacity-60 ${
-                  index < TRANSCRIPTION_LANGUAGES.length - 1 ? 'border-b border-[#ededf3]' : ''
-                } ${isSelected ? 'bg-[rgba(255,64,0,0.04)]' : 'hover:bg-[#f7f7f7]'}`}
+                  index < TRANSCRIPTION_LANGUAGES.length - 1 ? 'border-b border-border' : ''
+                } ${isSelected ? 'bg-primary/5' : 'hover:bg-muted'}`}
               >
                 <span className="flex flex-col">
                   <span
                     className={`text-[14px] font-medium ${
-                      isSelected ? 'text-[#ff4000]' : 'text-[#464646]'
+                      isSelected ? 'text-primary' : 'text-muted-foreground'
                     }`}
                   >
                     {language.label}
                   </span>
-                  <span className="text-[13px] text-[#969696]">{language.nativeLabel}</span>
+                  <span className="text-[13px] text-muted-foreground">{language.nativeLabel}</span>
                 </span>
-                {isSelected && <Check className="w-[18px] h-[18px] text-[#ff4000]" />}
+                {isSelected && <Check className="w-[18px] h-[18px] text-primary" />}
               </button>
             );
           })}
@@ -103,14 +103,14 @@ export function TranscriptionPanel() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-[8px] p-[12px] bg-[rgba(209,36,47,0.06)] border border-[rgba(209,36,47,0.19)] rounded-[10px]">
-          <AlertCircle className="w-[16px] h-[16px] text-[#d1242f] shrink-0 mt-[1px]" />
-          <span className="text-[13px] text-[#d1242f]">{error}</span>
+        <div className="flex items-start gap-[8px] p-[12px] bg-destructive/10 border border-destructive/20 rounded-[10px]">
+          <AlertCircle className="w-[16px] h-[16px] text-destructive shrink-0 mt-[1px]" />
+          <span className="text-[13px] text-destructive">{error}</span>
         </div>
       )}
 
       {transcriptionLanguage !== AUTO_LANGUAGE && (
-        <p className="text-[13px] text-[#969696] leading-[18px]">
+        <p className="text-[13px] text-muted-foreground leading-[18px]">
           Language support depends on the VideoDB transcription backend. If the selected language
           is unavailable, transcription falls back to the engine default instead of failing.
         </p>

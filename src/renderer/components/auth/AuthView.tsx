@@ -24,13 +24,13 @@ export function StepIndicators({ currentStep, totalSteps = 3 }: { currentStep: n
         let className = 'rounded-[3px] ';
         if (step === currentStep) {
           // Current step - active (wide orange bar)
-          className += 'w-[24px] h-[6px] bg-[#ec5b16]';
+          className += 'w-[24px] h-[6px] bg-primary';
         } else if (step < currentStep) {
           // Completed step - dimmed orange dot
-          className += 'w-[6px] h-[6px] bg-[#ec5b16]/40';
+          className += 'w-[6px] h-[6px] bg-primary/40';
         } else {
           // Future step - gray dot
-          className += 'w-[6px] h-[6px] bg-[#e0e0e8]';
+          className += 'w-[6px] h-[6px] bg-muted';
         }
         return <div key={step} className={className} />;
       })}
@@ -84,13 +84,13 @@ export function AuthView() {
   const canSubmit = name.trim().length > 0 && apiKey.trim().length > 0 && !isSubmitting;
 
   return (
-    <div className="h-full w-full bg-[#f8f8fa] flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="h-full w-full bg-background flex flex-col items-center justify-center relative overflow-hidden">
       {/* Orange gradient glow */}
       <div
         className="absolute top-[-30%] left-1/2 -translate-x-1/2 w-[600px] h-[567px] rounded-[300px] pointer-events-none"
         style={{
           background:
-            'radial-gradient(circle at center, rgba(236,91,22,0.08) 0%, rgba(236,91,22,0) 70%)',
+            'radial-gradient(circle at center, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0) 70%)',
         }}
       />
 
@@ -105,10 +105,10 @@ export function AuthView() {
         <div className="flex flex-col items-center gap-[16px] mb-[32px]">
           <LogoIcon />
           <div className="flex flex-col items-center gap-[8px]">
-            <h1 className="text-[22px] font-semibold text-black text-center tracking-[-0.44px] leading-[33px]">
+            <h1 className="text-[22px] font-semibold text-foreground text-center tracking-[-0.44px] leading-[33px]">
               Welcome to Call.md
             </h1>
-            <p className="text-[14px] font-normal text-[#464646] text-center leading-[21px]">
+            <p className="text-[14px] font-normal text-muted-foreground text-center leading-[21px]">
               Record, transcribe, and get AI insights from every meeting.
             </p>
           </div>
@@ -118,7 +118,7 @@ export function AuthView() {
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-[16px]">
           {/* Name field */}
           <div className="flex flex-col gap-[6px]">
-            <label className="text-[13px] font-medium text-[#464646] tracking-[0.26px] leading-[19.5px]">
+            <label className="text-[13px] font-medium text-muted-foreground tracking-[0.26px] leading-[19.5px]">
               Your name
             </label>
             <input
@@ -126,14 +126,14 @@ export function AuthView() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full bg-[#efefef] border border-[#e0e0e8] rounded-[10px] px-[15px] py-[14px] text-[14px] text-black placeholder:text-[#969696] tracking-[0.14px] outline-none focus:border-[#c0c0c0] transition-colors"
+              className="w-full bg-muted border border-input rounded-[10px] px-[15px] py-[14px] text-[14px] text-foreground placeholder:text-muted-foreground tracking-[0.14px] outline-none focus:border-input transition-colors"
               autoFocus
             />
           </div>
 
           {/* API Key field */}
           <div className="flex flex-col gap-[6px]">
-            <label className="text-[13px] font-medium text-[#464646] tracking-[0.26px] leading-[19.5px]">
+            <label className="text-[13px] font-medium text-muted-foreground tracking-[0.26px] leading-[19.5px]">
               VideoDB API Key
             </label>
             <input
@@ -141,7 +141,7 @@ export function AuthView() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="sk-xxxxxxxxxxxxxxxx"
-              className="w-full bg-[#efefef] border border-[#e0e0e8] rounded-[10px] px-[15px] py-[14px] text-[14px] text-black placeholder:text-[#969696] tracking-[0.14px] outline-none focus:border-[#c0c0c0] transition-colors font-mono"
+              className="w-full bg-muted border border-input rounded-[10px] px-[15px] py-[14px] text-[14px] text-foreground placeholder:text-muted-foreground tracking-[0.14px] outline-none focus:border-input transition-colors font-mono"
             />
           </div>
 
@@ -158,7 +158,7 @@ export function AuthView() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="w-full bg-[#ff4000] hover:bg-[#e63900] disabled:bg-[#ffb399] disabled:cursor-not-allowed rounded-[12px] px-[24px] py-[12px] text-[14px] font-medium text-white text-center tracking-[0.14px] leading-[21px] transition-colors flex items-center justify-center"
+              className="w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed rounded-[12px] px-[24px] py-[12px] text-[14px] font-medium text-white text-center tracking-[0.14px] leading-[21px] transition-colors flex items-center justify-center"
             >
               {isSubmitting ? (
                 <>
@@ -176,13 +176,13 @@ export function AuthView() {
               onClick={handleGetApiKey}
               className="w-full flex items-center justify-center gap-[4px] px-[16px] py-[12px] rounded-[10px] hover:bg-black/5 transition-colors"
             >
-              <span className="text-[13px] font-medium text-[#464646] tracking-[0.13px] leading-[19.5px]">
+              <span className="text-[13px] font-medium text-muted-foreground tracking-[0.13px] leading-[19.5px]">
                 Don't have an API key?
               </span>
-              <span className="text-[13px] font-medium text-[#ec5b16] tracking-[0.13px] leading-[19.5px]">
+              <span className="text-[13px] font-medium text-primary tracking-[0.13px] leading-[19.5px]">
                 Get one
               </span>
-              <ChevronRight className="w-[14px] h-[14px] text-[#ec5b16]" />
+              <ChevronRight className="w-[14px] h-[14px] text-primary" />
             </button>
           </div>
         </form>

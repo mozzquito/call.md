@@ -60,8 +60,8 @@ export function MCPResultsOverlay({ className, maxResults = 2 }: MCPResultsOverl
         <Card className="flex-1">
           <CardContent className="flex items-center justify-center h-full min-h-[150px]">
             <div className="text-center">
-              <Zap className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <Zap className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
                 {connectedServerCount > 0
                   ? 'MCP results will appear when tools are triggered'
                   : 'Connect MCP servers to see results'}

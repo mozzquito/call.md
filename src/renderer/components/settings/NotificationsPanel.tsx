@@ -27,11 +27,11 @@ function Toggle({
       onClick={() => !disabled && onChange(!enabled)}
       disabled={disabled}
       className={`w-[38px] h-[22px] rounded-full relative transition-colors ${
-        enabled ? 'bg-[#ec5b16]' : 'bg-[#e4e4ec]'
+        enabled ? 'bg-primary' : 'bg-muted-foreground/30'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       <div
-        className={`absolute size-[18px] bg-white rounded-full top-[2px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.15)] transition-all ${
+        className={`absolute size-[18px] bg-primary-foreground rounded-full top-[2px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.15)] transition-all ${
           enabled ? 'left-[18px]' : 'left-[2px]'
         }`}
       />
@@ -43,8 +43,8 @@ function Toggle({
 function RecordIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="10" cy="10" r="7.5" stroke="#ec5b16" strokeWidth="1.5" />
-      <circle cx="10" cy="10" r="3" fill="#ec5b16" />
+      <circle cx="10" cy="10" r="7.5" stroke="hsl(var(--primary))" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="3" fill="hsl(var(--primary))" />
     </svg>
   );
 }
@@ -59,7 +59,7 @@ function SettingsCard({
 }) {
   return (
     <div
-      className={`bg-white border border-[#e4e4ec] rounded-[14px] overflow-hidden ${className}`}
+      className={`bg-card border border-border rounded-[14px] overflow-hidden ${className}`}
     >
       {children}
     </div>
@@ -69,12 +69,12 @@ function SettingsCard({
 // Card header
 function CardHeader({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="px-[20px] py-[16px] border-b border-[#ededf3]">
-      <h3 className="text-[16px] font-semibold text-[#141420] leading-[22.5px]">
+    <div className="px-[20px] py-[16px] border-b border-border">
+      <h3 className="text-[16px] font-semibold text-foreground leading-[22.5px]">
         {title}
       </h3>
       {description && (
-        <p className="text-[13px] text-[#969696] mt-[4px]">{description}</p>
+        <p className="text-[13px] text-muted-foreground mt-[4px]">{description}</p>
       )}
     </div>
   );
@@ -160,14 +160,14 @@ export function NotificationsPanel() {
         <div className="px-[20px] py-[16px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-[12px]">
-              <div className="w-[36px] h-[36px] bg-[#f7f7f7] rounded-[10px] flex items-center justify-center">
-                <Bell className="w-[18px] h-[18px] text-[#464646]" />
+              <div className="w-[36px] h-[36px] bg-secondary rounded-[10px] flex items-center justify-center">
+                <Bell className="w-[18px] h-[18px] text-muted-foreground" />
               </div>
               <div>
-                <p className="text-[14px] font-medium text-[#141420]">
+                <p className="text-[14px] font-medium text-foreground">
                   Desktop Notifications
                 </p>
-                <p className="text-[12px] text-[#969696]">
+                <p className="text-[12px] text-muted-foreground">
                   {systemNotificationsEnabled ? 'Enabled' : 'Disabled in System Preferences'}
                 </p>
               </div>
@@ -190,12 +190,12 @@ export function NotificationsPanel() {
           {/* Notify before meetings */}
           <div className="space-y-[10px]">
             <div className="flex items-center gap-[8px]">
-              <Bell className="h-[18px] w-[18px] text-[#464646]" />
-              <span className="text-[14px] font-medium text-[#141420]">
+              <Bell className="h-[18px] w-[18px] text-muted-foreground" />
+              <span className="text-[14px] font-medium text-foreground">
                 Notify me before meetings
               </span>
               {isSavingPrefs && (
-                <Loader2 className="h-[14px] w-[14px] text-[#969696] animate-spin ml-auto" />
+                <Loader2 className="h-[14px] w-[14px] text-muted-foreground animate-spin ml-auto" />
               )}
             </div>
             <div className="flex gap-[8px]">
@@ -206,8 +206,8 @@ export function NotificationsPanel() {
                   disabled={isSavingPrefs}
                   className={`flex-1 py-[11px] rounded-[8px] text-[13px] font-medium leading-[19.5px] transition-colors disabled:opacity-60 ${
                     notifyMinutes === option.value
-                      ? 'bg-[rgba(236,91,22,0.05)] border border-[#ec5b16] text-[#ec5b16]'
-                      : 'border border-[rgba(150,150,150,0.3)] text-[#464646] hover:bg-gray-50'
+                      ? 'bg-primary/5 border border-primary text-primary'
+                      : 'border border-input text-muted-foreground hover:bg-secondary'
                   }`}
                 >
                   {option.label}
@@ -220,7 +220,7 @@ export function NotificationsPanel() {
           <div className="space-y-[10px]">
             <div className="flex items-center gap-[8px]">
               <RecordIcon />
-              <span className="text-[14px] font-medium text-[#141420]">
+              <span className="text-[14px] font-medium text-foreground">
                 Default recording behavior
               </span>
             </div>
@@ -232,15 +232,15 @@ export function NotificationsPanel() {
                   disabled={isSavingPrefs}
                   className={`w-full flex items-center gap-[12px] px-[17px] py-[15px] rounded-[10px] text-left transition-colors disabled:opacity-60 ${
                     recordingBehavior === option.value
-                      ? 'bg-[rgba(236,91,22,0.05)] border border-[#ec5b16]'
-                      : 'border border-[#e0e0e8] hover:bg-gray-50'
+                      ? 'bg-primary/5 border border-primary'
+                      : 'border border-input hover:bg-secondary'
                   }`}
                 >
                   <div className="flex-1 flex flex-col gap-[2px]">
-                    <span className="text-[14px] font-medium text-[#141420]">
+                    <span className="text-[14px] font-medium text-foreground">
                       {option.title}
                     </span>
-                    <span className="text-[12px] font-normal text-[#464646]">
+                    <span className="text-[12px] font-normal text-muted-foreground">
                       {option.description}
                     </span>
                   </div>
@@ -248,12 +248,12 @@ export function NotificationsPanel() {
                   <div
                     className={`w-[18px] h-[18px] rounded-[9px] border-2 flex items-center justify-center shrink-0 ${
                       recordingBehavior === option.value
-                        ? 'border-[#ec5b16]'
-                        : 'border-[#e0e0e8]'
+                        ? 'border-primary'
+                        : 'border-input'
                     }`}
                   >
                     {recordingBehavior === option.value && (
-                      <div className="w-[8px] h-[8px] rounded-[4px] bg-[#ec5b16]" />
+                      <div className="w-[8px] h-[8px] rounded-[4px] bg-primary" />
                     )}
                   </div>
                 </button>

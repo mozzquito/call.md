@@ -38,11 +38,11 @@ function Toggle({
     <button
       onClick={() => onChange(!enabled)}
       className={`w-[38px] h-[22px] rounded-full relative transition-colors ${
-        enabled ? 'bg-[#ec5b16]' : 'bg-[#e4e4ec]'
+        enabled ? 'bg-primary' : 'bg-muted-foreground/30'
       }`}
     >
       <div
-        className={`absolute size-[18px] bg-white rounded-full top-[2px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.15)] transition-all ${
+        className={`absolute size-[18px] bg-primary-foreground rounded-full top-[2px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.15)] transition-all ${
           enabled ? 'left-[18px]' : 'left-[2px]'
         }`}
       />
@@ -223,7 +223,7 @@ export function WorkflowsPanel() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-[48px]">
-        <Loader2 className="h-[24px] w-[24px] animate-spin text-[#969696]" />
+        <Loader2 className="h-[24px] w-[24px] animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -233,18 +233,18 @@ export function WorkflowsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[16px] font-semibold text-[#141420] flex items-center gap-[8px]">
+          <h2 className="text-[16px] font-semibold text-foreground flex items-center gap-[8px]">
             <Workflow className="h-[18px] w-[18px]" />
             Workflows
           </h2>
-          <p className="text-[13px] text-[#969696] mt-[2px]">
+          <p className="text-[13px] text-muted-foreground mt-[2px]">
             Send meeting data to automation tools like n8n and Zapier
           </p>
         </div>
         {!showForm && (
           <button
             onClick={handleAdd}
-            className="flex items-center gap-[6px] px-[14px] py-[8px] bg-[#ec5b16] hover:bg-[#d9520f] text-white text-[13px] font-medium rounded-[8px] transition-colors"
+            className="flex items-center gap-[6px] px-[14px] py-[8px] bg-primary hover:bg-primary/90 text-white text-[13px] font-medium rounded-[8px] transition-colors"
           >
             <Plus className="h-[14px] w-[14px]" />
             Add Workflow
@@ -253,8 +253,8 @@ export function WorkflowsPanel() {
       </div>
 
       {error && (
-        <div className="p-[12px] bg-[#fef2f2] border border-[#fecaca] rounded-[10px]">
-          <p className="text-[13px] text-[#dc2626] flex items-center gap-[8px]">
+        <div className="p-[12px] bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-[10px]">
+          <p className="text-[13px] text-red-600 dark:text-red-400 flex items-center gap-[8px]">
             <AlertCircle className="h-[14px] w-[14px]" />
             {error}
           </p>
@@ -263,19 +263,19 @@ export function WorkflowsPanel() {
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="bg-white border border-[#ededf3] rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]">
-          <div className="px-[20px] py-[16px] border-b border-[#ededf3]">
-            <h3 className="text-[15px] font-semibold text-[#141420]">
+        <div className="bg-card border border-border rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]">
+          <div className="px-[20px] py-[16px] border-b border-border">
+            <h3 className="text-[15px] font-semibold text-foreground">
               {editingId ? 'Edit Workflow' : 'New Workflow'}
             </h3>
-            <p className="text-[13px] text-[#969696] mt-[4px]">
+            <p className="text-[13px] text-muted-foreground mt-[4px]">
               Configure a webhook URL to receive meeting data after each recording.
             </p>
           </div>
           <div className="px-[20px] py-[20px] space-y-[16px]">
             {formError && (
-              <div className="p-[12px] bg-[#fef2f2] border border-[#fecaca] rounded-[10px]">
-                <p className="text-[13px] text-[#dc2626] flex items-center gap-[8px]">
+              <div className="p-[12px] bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-[10px]">
+                <p className="text-[13px] text-red-600 dark:text-red-400 flex items-center gap-[8px]">
                   <AlertCircle className="h-[14px] w-[14px]" />
                   {formError}
                 </p>
@@ -283,34 +283,34 @@ export function WorkflowsPanel() {
             )}
 
             <div className="space-y-[6px]">
-              <label className="text-[13px] font-medium text-[#141420]">Name</label>
+              <label className="text-[13px] font-medium text-foreground">Name</label>
               <input
                 type="text"
                 placeholder="e.g., Notion Sync, n8n Workflow"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full px-[12px] py-[10px] text-[14px] text-[#141420] bg-white border border-[#ededf3] rounded-[10px] outline-none focus:border-[#ec5b16] focus:ring-1 focus:ring-[#ec5b16]/20 transition-colors placeholder:text-[#969696]"
+                className="w-full px-[12px] py-[10px] text-[14px] text-foreground bg-card border border-border rounded-[10px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors placeholder:text-muted-foreground"
               />
             </div>
 
             <div className="space-y-[6px]">
-              <label className="text-[13px] font-medium text-[#141420]">Webhook URL</label>
+              <label className="text-[13px] font-medium text-foreground">Webhook URL</label>
               <input
                 type="url"
                 placeholder="https://your-webhook-url.com/hook"
                 value={formUrl}
                 onChange={(e) => setFormUrl(e.target.value)}
-                className="w-full px-[12px] py-[10px] text-[14px] text-[#141420] bg-white border border-[#ededf3] rounded-[10px] outline-none focus:border-[#ec5b16] focus:ring-1 focus:ring-[#ec5b16]/20 transition-colors placeholder:text-[#969696] font-mono text-[13px]"
+                className="w-full px-[12px] py-[10px] text-[14px] text-foreground bg-card border border-border rounded-[10px] outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors placeholder:text-muted-foreground font-mono text-[13px]"
               />
-              <p className="text-[12px] text-[#969696]">
+              <p className="text-[12px] text-muted-foreground">
                 The URL that will receive POST requests with meeting data
               </p>
             </div>
 
             <div className="flex items-center justify-between py-[8px]">
               <div>
-                <p className="text-[13px] font-medium text-[#141420]">Enabled</p>
-                <p className="text-[12px] text-[#969696]">
+                <p className="text-[13px] font-medium text-foreground">Enabled</p>
+                <p className="text-[12px] text-muted-foreground">
                   Only enabled workflows will be triggered
                 </p>
               </div>
@@ -321,14 +321,14 @@ export function WorkflowsPanel() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-[6px] px-[16px] py-[10px] bg-[#ec5b16] hover:bg-[#d9520f] text-white text-[14px] font-medium rounded-[10px] transition-colors disabled:opacity-50"
+                className="flex items-center gap-[6px] px-[16px] py-[10px] bg-primary hover:bg-primary/90 text-white text-[14px] font-medium rounded-[10px] transition-colors disabled:opacity-50"
               >
                 {isSaving && <Loader2 className="h-[14px] w-[14px] animate-spin" />}
                 {editingId ? 'Update' : 'Create'}
               </button>
               <button
                 onClick={handleCancel}
-                className="px-[16px] py-[10px] border border-[#ededf3] rounded-[10px] text-[14px] font-medium text-[#464646] hover:bg-[#f7f7f7] transition-colors"
+                className="px-[16px] py-[10px] border border-border rounded-[10px] text-[14px] font-medium text-muted-foreground hover:bg-secondary transition-colors"
               >
                 Cancel
               </button>
@@ -339,20 +339,20 @@ export function WorkflowsPanel() {
 
       {/* Workflows List */}
       {workflows.length === 0 && !showForm ? (
-        <div className="bg-white border border-[#ededf3] rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]">
+        <div className="bg-card border border-border rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col items-center py-[48px] px-[20px]">
-            <div className="w-[48px] h-[48px] flex items-center justify-center bg-[#f7f7f7] rounded-[12px] mb-[16px]">
-              <Workflow className="h-[24px] w-[24px] text-[#969696]" />
+            <div className="w-[48px] h-[48px] flex items-center justify-center bg-secondary rounded-[12px] mb-[16px]">
+              <Workflow className="h-[24px] w-[24px] text-muted-foreground" />
             </div>
-            <p className="text-[14px] text-[#464646] text-center mb-[8px]">
+            <p className="text-[14px] text-muted-foreground text-center mb-[8px]">
               No workflows configured yet
             </p>
-            <p className="text-[13px] text-[#969696] text-center max-w-[320px] mb-[16px]">
+            <p className="text-[13px] text-muted-foreground text-center max-w-[320px] mb-[16px]">
               Add a webhook URL to automatically send meeting recordings, summaries, and action items to your automation tools.
             </p>
             <button
               onClick={handleAdd}
-              className="flex items-center gap-[6px] px-[16px] py-[10px] bg-[#ec5b16] hover:bg-[#d9520f] text-white text-[14px] font-medium rounded-[10px] transition-colors"
+              className="flex items-center gap-[6px] px-[16px] py-[10px] bg-primary hover:bg-primary/90 text-white text-[14px] font-medium rounded-[10px] transition-colors"
             >
               <Plus className="h-[14px] w-[14px]" />
               Add Your First Workflow
@@ -362,15 +362,15 @@ export function WorkflowsPanel() {
       ) : (
         <div className="space-y-[12px]">
           {workflows.map((workflow) => (
-            <div key={workflow.id} className="bg-white border border-[#ededf3] rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)] px-[16px] py-[14px]">
+            <div key={workflow.id} className="bg-card border border-border rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)] px-[16px] py-[14px]">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-[8px] mb-[4px]">
-                    <h4 className="text-[14px] font-medium text-[#141420] truncate">{workflow.name}</h4>
+                    <h4 className="text-[14px] font-medium text-foreground truncate">{workflow.name}</h4>
                     <div className={`px-[8px] py-[2px] rounded-[6px] ${
                       workflow.enabled
-                        ? 'bg-[#ecfdf5] text-[#059669]'
-                        : 'bg-[#f7f7f7] text-[#969696]'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-secondary text-muted-foreground'
                     }`}>
                       <span className="text-[11px] font-medium">
                         {workflow.enabled ? 'Enabled' : 'Disabled'}
@@ -379,8 +379,8 @@ export function WorkflowsPanel() {
                     {testResult && testResult.id === workflow.id && (
                       <div className={`flex items-center gap-[4px] px-[8px] py-[2px] rounded-[6px] ${
                         testResult.success
-                          ? 'bg-[#ecfdf5] text-[#059669]'
-                          : 'bg-[#fef2f2] text-[#dc2626]'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400'
                       }`}>
                         {testResult.success ? (
                           <Check className="h-[12px] w-[12px]" />
@@ -391,7 +391,7 @@ export function WorkflowsPanel() {
                       </div>
                     )}
                   </div>
-                  <p className="text-[12px] text-[#969696] truncate font-mono">
+                  <p className="text-[12px] text-muted-foreground truncate font-mono">
                     {workflow.webhookUrl}
                   </p>
                 </div>
@@ -401,27 +401,27 @@ export function WorkflowsPanel() {
                     onClick={() => handleTest(workflow)}
                     disabled={testingId === workflow.id}
                     title="Test webhook"
-                    className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-[#f7f7f7] transition-colors disabled:opacity-50"
+                    className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-secondary transition-colors disabled:opacity-50"
                   >
                     {testingId === workflow.id ? (
-                      <Loader2 className="h-[16px] w-[16px] animate-spin text-[#464646]" />
+                      <Loader2 className="h-[16px] w-[16px] animate-spin text-muted-foreground" />
                     ) : (
-                      <Play className="h-[16px] w-[16px] text-[#464646]" />
+                      <Play className="h-[16px] w-[16px] text-muted-foreground" />
                     )}
                   </button>
                   <button
                     onClick={() => handleEdit(workflow)}
                     title="Edit workflow"
-                    className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-[#f7f7f7] transition-colors"
+                    className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-secondary transition-colors"
                   >
-                    <Pencil className="h-[16px] w-[16px] text-[#464646]" />
+                    <Pencil className="h-[16px] w-[16px] text-muted-foreground" />
                   </button>
                   <button
                     onClick={() => handleDelete(workflow.id)}
                     title="Delete workflow"
-                    className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-[#fef2f2] transition-colors"
+                    className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                   >
-                    <Trash2 className="h-[16px] w-[16px] text-[#dc2626]" />
+                    <Trash2 className="h-[16px] w-[16px] text-red-600 dark:text-red-400" />
                   </button>
                   <Toggle
                     enabled={workflow.enabled}
@@ -435,15 +435,15 @@ export function WorkflowsPanel() {
       )}
 
       {/* Info Card */}
-      <div className="bg-white border border-[#ededf3] rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]">
+      <div className="bg-card border border-border rounded-[12px] shadow-[0px_1.272px_15.267px_0px_rgba(0,0,0,0.05)]">
         <div className="px-[20px] py-[16px]">
-          <h4 className="text-[14px] font-semibold text-[#141420] mb-[8px]">
+          <h4 className="text-[14px] font-semibold text-foreground mb-[8px]">
             Webhook Payload
           </h4>
-          <p className="text-[13px] text-[#464646] mb-[8px]">
+          <p className="text-[13px] text-muted-foreground mb-[8px]">
             After each meeting recording, enabled workflows receive a POST request with:
           </p>
-          <ul className="text-[13px] text-[#969696] space-y-[4px] list-disc list-inside">
+          <ul className="text-[13px] text-muted-foreground space-y-[4px] list-disc list-inside">
             <li>Meeting title, description, and duration</li>
             <li>VideoDB video ID and player URL</li>
             <li>AI-generated summary and topics</li>

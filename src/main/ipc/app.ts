@@ -1,4 +1,5 @@
-import { ipcMain, shell, Notification, BrowserWindow } from 'electron';
+import { ipcMain, shell, Notification, BrowserWindow, nativeTheme } from 'electron';
+import { isThemeSource } from '../../shared/theme';
 import { loadAppConfig, loadRuntimeConfig, clearAppConfig, saveAppConfig } from '../lib/config';
 import { VideoDBService } from '../services/videodb.service';
 import { getServerStatus } from '../server';
@@ -68,6 +69,14 @@ export function setupAppHandlers(): void {
   ipcMain.handle('get-server-port', async (): Promise<number> => {
     const status = getServerStatus();
     return status.port || 51731; // fallback to default
+  });
+
+  ipcMain.handle('set-theme-source', async (_event, source: unknown): Promise<void> => {
+    if (!isThemeSource(source)) {
+      throw new Error('Invalid theme source');
+    }
+
+    nativeTheme.themeSource = source;
   });
 
   ipcMain.handle('logout', async (): Promise<void> => {

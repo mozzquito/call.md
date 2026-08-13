@@ -16,9 +16,14 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  Monitor,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useConfigStore } from '../../stores/config.store';
 import { trpc } from '../../api/trpc';
+import { useThemeStore } from '../../stores/theme.store';
+import type { ThemeSource } from '../../../shared/theme';
 import { MCPServersPanel } from './MCPServersPanel';
 import { NotificationsPanel } from './NotificationsPanel';
 import { TranscriptionPanel } from './TranscriptionPanel';
@@ -48,15 +53,15 @@ function SettingsTabs({
   ];
 
   return (
-    <div className="bg-[#f7f7f7] flex gap-[10px] p-[4px] rounded-[14px] w-full">
+    <div className="bg-secondary flex gap-[10px] p-[4px] rounded-[14px] w-full">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           className={`flex-1 px-[12px] py-[12px] rounded-[12px] text-[14px] font-medium transition-all whitespace-nowrap ${
             activeTab === tab.id
-              ? 'bg-[#ff4000] text-white font-semibold shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
-              : 'text-[#464646] hover:bg-[#efefef]'
+              ? 'bg-primary text-white font-semibold shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]'
+              : 'text-muted-foreground hover:bg-muted'
           }`}
         >
           {tab.label}
@@ -76,7 +81,7 @@ function SettingsCard({
 }) {
   return (
     <div
-      className={`bg-white border border-[#e4e4ec] rounded-[14px] overflow-hidden ${className}`}
+      className={`bg-card border border-border rounded-[14px] overflow-hidden ${className}`}
     >
       {children}
     </div>
@@ -86,8 +91,8 @@ function SettingsCard({
 // Card header
 function CardHeader({ title }: { title: string }) {
   return (
-    <div className="px-[20px] py-[16px] border-b border-[#ededf3]">
-      <h3 className="text-[16px] font-semibold text-[#141420] leading-[22.5px]">
+    <div className="px-[20px] py-[16px] border-b border-border">
+      <h3 className="text-[16px] font-semibold text-foreground leading-[22.5px]">
         {title}
       </h3>
     </div>
@@ -107,10 +112,10 @@ function CardRow({
   return (
     <div
       className={`flex items-center justify-between px-[20px] py-[14px] ${
-        hasBorder ? 'border-b border-[#ededf3]' : ''
+        hasBorder ? 'border-b border-border' : ''
       }`}
     >
-      <span className="text-[14px] font-medium text-[#464646]">{label}</span>
+      <span className="text-[14px] font-medium text-muted-foreground">{label}</span>
       <div className="flex items-center gap-[8px]">{children}</div>
     </div>
   );
@@ -135,8 +140,8 @@ function GoogleCalendarIcon() {
 // Calendar icon for empty state
 function CalendarEmptyIcon() {
   return (
-    <div className="w-[50px] h-[50px] bg-[rgba(255,64,0,0.1)] border border-[rgba(236,91,22,0.13)] rounded-[8px] flex items-center justify-center">
-      <Calendar className="w-[25px] h-[25px] text-[#ec5b16]" />
+    <div className="w-[50px] h-[50px] bg-primary/10 border border-primary/20 rounded-[8px] flex items-center justify-center">
+      <Calendar className="w-[25px] h-[25px] text-primary" />
     </div>
   );
 }
@@ -145,9 +150,9 @@ function CalendarEmptyIcon() {
 function LogoutIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M7.5 17.5H4.16667C3.72464 17.5 3.30072 17.3244 2.98816 17.0118C2.67559 16.6993 2.5 16.2754 2.5 15.8333V4.16667C2.5 3.72464 2.67559 3.30072 2.98816 2.98816C3.30072 2.67559 3.72464 2.5 4.16667 2.5H7.5" stroke="#d1242f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M13.333 14.1667L17.4997 10L13.333 5.83337" stroke="#d1242f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M17.5 10H7.5" stroke="#d1242f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M7.5 17.5H4.16667C3.72464 17.5 3.30072 17.3244 2.98816 17.0118C2.67559 16.6993 2.5 16.2754 2.5 15.8333V4.16667C2.5 3.72464 2.67559 3.30072 2.98816 2.98816C3.30072 2.67559 3.72464 2.5 4.16667 2.5H7.5" stroke="hsl(var(--destructive))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M13.333 14.1667L17.4997 10L13.333 5.83337" stroke="hsl(var(--destructive))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M17.5 10H7.5" stroke="hsl(var(--destructive))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -156,6 +161,7 @@ function LogoutIcon() {
 function AccountPanel() {
   const configStore = useConfigStore();
   const updateApiKeyMutation = trpc.auth.updateApiKey.useMutation();
+  const { theme, setTheme } = useThemeStore();
   const [showApiKey, setShowApiKey] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
@@ -297,7 +303,7 @@ function AccountPanel() {
 
         {/* Name Row */}
         <CardRow label="Name">
-          <span className="text-[14px] font-medium text-black">
+          <span className="text-[14px] font-medium text-foreground">
             {configStore.userName || 'Not set'}
           </span>
         </CardRow>
@@ -314,49 +320,49 @@ function AccountPanel() {
                   setSaveError(null);
                 }}
                 placeholder="Paste new API key"
-                className="w-[200px] px-[12px] py-[6px] bg-[#f7f7f7] border border-[#e9e9e9] rounded-[8px] text-[13px] text-[#141420] placeholder:text-[#969696] outline-none focus:border-[#ec5b16]"
+                className="w-[200px] px-[12px] py-[6px] bg-secondary border border-input rounded-[8px] text-[13px] text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
               />
               <button
                 onClick={handleSaveApiKey}
                 disabled={isSaving || !newApiKey.trim()}
-                className="px-[10px] py-[6px] bg-[#ff4000] hover:bg-[#e63900] disabled:opacity-50 rounded-[8px] text-[13px] font-medium text-white transition-colors"
+                className="px-[10px] py-[6px] bg-primary hover:bg-primary/90 disabled:opacity-50 rounded-[8px] text-[13px] font-medium text-white transition-colors"
               >
                 {isSaving ? <Loader2 className="w-[14px] h-[14px] animate-spin" /> : 'Save'}
               </button>
               <button
                 onClick={handleCancelEdit}
-                className="px-[10px] py-[6px] bg-[#f0f0f5] border border-[#efefef] rounded-[8px] text-[13px] font-medium text-[#464646] hover:bg-[#e8e8ed] transition-colors"
+                className="px-[10px] py-[6px] bg-muted border border-border rounded-[8px] text-[13px] font-medium text-muted-foreground hover:bg-muted/80 transition-colors"
               >
                 Cancel
               </button>
             </>
           ) : (
             <>
-              <span className="text-[14px] font-medium text-black font-mono">
+              <span className="text-[14px] font-medium text-foreground font-mono">
                 {showApiKey
                   ? configStore.apiKey || 'Not set'
                   : maskApiKey(configStore.apiKey || '')}
               </span>
               <button
                 onClick={() => setShowApiKey(!showApiKey)}
-                className="p-[6px] bg-[#f0f0f5] border border-[#efefef] rounded-[8px] hover:bg-[#e8e8ed] transition-colors"
+                className="p-[6px] bg-muted border border-border rounded-[8px] hover:bg-muted/80 transition-colors"
                 title={showApiKey ? 'Hide API key' : 'Show API key'}
               >
                 {showApiKey ? (
-                  <EyeOff className="w-[16px] h-[16px] text-[#464646]" />
+                  <EyeOff className="w-[16px] h-[16px] text-muted-foreground" />
                 ) : (
-                  <Eye className="w-[16px] h-[16px] text-[#464646]" />
+                  <Eye className="w-[16px] h-[16px] text-muted-foreground" />
                 )}
               </button>
               <button
                 onClick={handleCopyApiKey}
-                className="p-[6px] bg-[#f0f0f5] border border-[#efefef] rounded-[8px] hover:bg-[#e8e8ed] transition-colors"
+                className="p-[6px] bg-muted border border-border rounded-[8px] hover:bg-muted/80 transition-colors"
                 title={copySuccess ? 'Copied!' : 'Copy API key'}
               >
                 {copySuccess ? (
-                  <Check className="w-[16px] h-[16px] text-[#059669]" />
+                  <Check className="w-[16px] h-[16px] text-emerald-600 dark:text-emerald-400" />
                 ) : (
-                  <Copy className="w-[16px] h-[16px] text-[#464646]" />
+                  <Copy className="w-[16px] h-[16px] text-muted-foreground" />
                 )}
               </button>
               <button
@@ -364,20 +370,52 @@ function AccountPanel() {
                   setIsEditingApiKey(true);
                   setSaveError(null);
                 }}
-                className="flex items-center gap-[4px] px-[10px] py-[6px] bg-[#f0f0f5] border border-[#efefef] rounded-[8px] hover:bg-[#e8e8ed] transition-colors"
+                className="flex items-center gap-[4px] px-[10px] py-[6px] bg-muted border border-border rounded-[8px] hover:bg-muted/80 transition-colors"
               >
-                <Pencil className="w-[16px] h-[16px] text-[#ff4000]" />
-                <span className="text-[13px] font-medium text-[#ff4000]">Change</span>
+                <Pencil className="w-[16px] h-[16px] text-primary" />
+                <span className="text-[13px] font-medium text-primary">Change</span>
               </button>
             </>
           )}
         </CardRow>
         {saveError && (
-          <div className="flex items-center gap-[6px] px-[20px] pb-[14px] text-[12px] text-[#d1242f]">
+          <div className="flex items-center gap-[6px] px-[20px] pb-[14px] text-[12px] text-destructive">
             <AlertCircle className="w-[14px] h-[14px] shrink-0" />
             <span>{saveError}</span>
           </div>
         )}
+      </SettingsCard>
+
+      <SettingsCard>
+        <CardHeader title="Appearance" />
+        <CardRow label="Theme" hasBorder={false}>
+          {(
+            [
+              { value: 'system', label: 'System', Icon: Monitor },
+              { value: 'light', label: 'Light', Icon: Sun },
+              { value: 'dark', label: 'Dark', Icon: Moon },
+            ] as const satisfies readonly {
+              value: ThemeSource;
+              label: string;
+              Icon: typeof Monitor;
+            }[]
+          ).map(({ value, label, Icon }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={theme === value}
+              onClick={() => setTheme(value)}
+              className={`flex items-center gap-[6px] rounded-[8px] border px-[10px] py-[7px] text-[13px] font-medium transition-colors ${
+                theme === value
+                  ? 'border-primary bg-accent text-primary'
+                  : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Icon className="size-[15px]" />
+              {label}
+            </button>
+          ))}
+        </CardRow>
       </SettingsCard>
 
       {/* Calendar Connection Card */}
@@ -385,18 +423,18 @@ function AccountPanel() {
         <CardHeader title="Calendar Connection" />
         <div className="flex flex-col items-center gap-[14px] py-[21px]">
           {isLoadingCalendar ? (
-            <Loader2 className="w-[32px] h-[32px] text-[#ec5b16] animate-spin" />
+            <Loader2 className="w-[32px] h-[32px] text-primary animate-spin" />
           ) : calendarStatus === 'connected' ? (
             <>
-              <div className="flex items-center gap-[8px] p-[12px] bg-[#ecfdf5] rounded-[10px]">
-                <Check className="w-[18px] h-[18px] text-[#059669]" />
-                <span className="text-[14px] font-medium text-[#059669]">
+              <div className="flex items-center gap-[8px] p-[12px] bg-emerald-50 dark:bg-emerald-950/30 rounded-[10px]">
+                <Check className="w-[18px] h-[18px] text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[14px] font-medium text-emerald-600 dark:text-emerald-400">
                   Calendar connected
                 </span>
               </div>
               <button
                 onClick={handleDisconnectCalendar}
-                className="px-[25px] py-[13px] bg-white border border-[#d0d0d8] rounded-[12px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)] text-[14px] font-medium text-[#464646] hover:bg-[#f7f7f7] transition-colors"
+                className="px-[25px] py-[13px] bg-card border border-input rounded-[12px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)] text-[14px] font-medium text-muted-foreground hover:bg-secondary transition-colors"
               >
                 Disconnect Calendar
               </button>
@@ -404,13 +442,13 @@ function AccountPanel() {
           ) : (
             <>
               <CalendarEmptyIcon />
-              <p className="text-[13px] text-[#969696] text-center max-w-[320px]">
+              <p className="text-[13px] text-muted-foreground text-center max-w-[320px]">
                 Connect calendars to auto-detect meetings
               </p>
               <button
                 onClick={handleConnectCalendar}
                 disabled={calendarStatus === 'connecting'}
-                className="flex items-center gap-[8px] px-[25px] py-[13px] bg-white border border-[#d0d0d8] rounded-[12px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)] text-[14px] font-medium text-black hover:bg-[#f7f7f7] transition-colors disabled:opacity-50"
+                className="flex items-center gap-[8px] px-[25px] py-[13px] bg-card border border-input rounded-[12px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.06)] text-[14px] font-medium text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
               >
                 {calendarStatus === 'connecting' ? (
                   <Loader2 className="w-[18px] h-[18px] animate-spin" />
@@ -427,10 +465,10 @@ function AccountPanel() {
       {/* Log out Button */}
       <button
         onClick={handleLogout}
-        className="flex items-center justify-center gap-[8px] w-full px-[17px] py-[11px] bg-[rgba(209,36,47,0.06)] border border-[rgba(209,36,47,0.19)] rounded-[10px] hover:bg-[rgba(209,36,47,0.1)] transition-colors"
+        className="flex items-center justify-center gap-[8px] w-full px-[17px] py-[11px] bg-destructive/5 border border-destructive/20 rounded-[10px] hover:bg-destructive/10 transition-colors"
       >
         <LogoutIcon />
-        <span className="text-[14px] font-semibold text-[#d1242f]">Log out</span>
+        <span className="text-[14px] font-semibold text-destructive">Log out</span>
       </button>
     </div>
   );
@@ -465,11 +503,11 @@ export function SettingsView({ initialTab, onClearInitialTab }: SettingsViewProp
   };
 
   return (
-    <div className="h-full overflow-auto bg-white">
+    <div className="h-full overflow-auto bg-background">
       <div className="flex items-start justify-center pt-[40px] pb-[24px] px-[60px]">
         <div className="flex-1 max-w-[660px] flex flex-col gap-[30px]">
           {/* Title */}
-          <h1 className="text-[24px] font-semibold text-[#141420] tracking-[-0.17px]">
+          <h1 className="text-[24px] font-semibold text-foreground tracking-[-0.17px]">
             Settings
           </h1>
 

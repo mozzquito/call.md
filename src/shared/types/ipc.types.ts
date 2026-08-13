@@ -5,6 +5,7 @@ import type {
   UpcomingMeeting,
 } from './calendar.types';
 import type { Workflow } from './workflow.types';
+import type { ThemeSource } from '../theme';
 
 export interface StartRecordingParams {
   config: CaptureConfig;
@@ -252,6 +253,7 @@ export interface IpcApi {
     showNotification: (title: string, body: string) => Promise<void>;
     openPlayerWindow: (url: string) => Promise<void>;
     openCallMdFolder: (path: string) => Promise<void>;
+    setThemeSource: (source: ThemeSource) => Promise<void>;
   };
   visualIndex: {
     saveItem: (data: {

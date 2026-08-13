@@ -59,7 +59,7 @@ function TalkRatioBar({ meRatio, themRatio }: TalkRatioBarProps) {
           style={{ width: `${mePercent}%` }}
         />
         <div
-          className="bg-slate-400 transition-all duration-500"
+          className="bg-muted-foreground transition-all duration-500"
           style={{ width: `${themPercent}%` }}
         />
       </div>

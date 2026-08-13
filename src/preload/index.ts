@@ -394,6 +394,7 @@ const api: IpcApi = {
       ipcRenderer.invoke('show-notification', title, body),
     openPlayerWindow: (url: string) => ipcRenderer.invoke('open-player-window', url),
     openCallMdFolder: (path: string) => ipcRenderer.invoke('open-call-md-folder', path),
+    setThemeSource: (source) => ipcRenderer.invoke('set-theme-source', source),
   },
 
   on: {
