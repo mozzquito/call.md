@@ -8,6 +8,7 @@ import {
   encryptSecret,
   decryptSecret,
   isEncrypted,
+  isStrongEncryptionAvailable,
   writeFileSecure,
   restrictPermissions,
   FILE_MODE,
@@ -122,12 +123,32 @@ export function loadAppConfig(): AppConfig {
   try {
     if (fs.existsSync(configPath)) {
       const data = fs.readFileSync(configPath, 'utf-8');
-      const { config, hadPlaintext } = decryptConfigSecrets(JSON.parse(data) as AppConfig);
+      const storedConfig = JSON.parse(data) as AppConfig;
+      const hadDuplicatedApiKey =
+        typeof storedConfig.apiKey === 'string' && storedConfig.apiKey.length > 0;
 
-      // Upgrade legacy plaintext configs the first time they are read.
+      // Remove the duplicated API key from the raw document before attempting
+      // decryption. This also works when Linux safeStorage is using basic_text:
+      // the still-valid access-token ciphertext is preserved byte-for-byte.
+      if (hadDuplicatedApiKey) {
+        const { apiKey: _legacyApiKey, ...withoutDuplicatedApiKey } = storedConfig;
+        writeFileSecure(configPath, JSON.stringify(withoutDuplicatedApiKey, null, 2));
+      }
+
+      const { config, hadPlaintext } = decryptConfigSecrets(storedConfig);
+
+      // Upgrade legacy plaintext configs and remove API keys duplicated by old
+      // releases. The encrypted database user row is the sole API-key authority.
       if (hadPlaintext) {
-        logger.info({ configPath }, 'Migrating plaintext app config to encrypted storage');
+        logger.info(
+          { configPath, removedDuplicatedApiKey: hadDuplicatedApiKey },
+          'Migrating legacy app config'
+        );
         saveAppConfig(config);
+      }
+
+      if (hadDuplicatedApiKey) {
+        delete config.apiKey;
       }
 
       return config;
@@ -141,7 +162,14 @@ export function loadAppConfig(): AppConfig {
 export function saveAppConfig(config: AppConfig): void {
   const configPath = getConfigPath();
   try {
-    writeFileSecure(configPath, JSON.stringify(encryptConfigSecrets(config), null, 2));
+    // API keys are owned by the encrypted database user row. Older builds
+    // duplicated them here, which made key rotation impossible to commit
+    // atomically across a crash.
+    const { apiKey: _legacyApiKey, ...withoutDuplicatedApiKey } = config;
+    writeFileSecure(
+      configPath,
+      JSON.stringify(encryptConfigSecrets(withoutDuplicatedApiKey), null, 2)
+    );
     logger.info({ configPath }, 'App config saved');
   } catch (error) {
     logger.error({ error, configPath }, 'Failed to save app config');
@@ -201,6 +229,7 @@ export function clearAppConfig(): void {
     }
   } catch (error) {
     logger.error({ error, configPath }, 'Failed to clear app config');
+    throw error;
   }
 }
 
@@ -249,19 +278,18 @@ export function saveGoogleTokens(tokens: GoogleTokens): void {
   try {
     const json = JSON.stringify(tokens);
 
-    if (safeStorage.isEncryptionAvailable()) {
-      const encrypted = safeStorage.encryptString(json);
-      writeFileSecure(tokenPath, encrypted);
-      // Clean up fallback if it exists
-      if (fs.existsSync(fallbackPath)) {
-        fs.unlinkSync(fallbackPath);
-      }
-      logger.info('Google tokens saved (encrypted)');
-    } else {
-      // Fallback to plain JSON (Linux without keyring) - owner-readable only
-      writeFileSecure(fallbackPath, json);
-      logger.warn('Google tokens saved (unencrypted - no keyring available)');
+    if (!isStrongEncryptionAvailable()) {
+      throw new Error('Secure credential storage is unavailable');
     }
+
+    const encrypted = safeStorage.encryptString(json);
+    writeFileSecure(tokenPath, encrypted);
+    // Remove plaintext written by older builds only after encrypted storage
+    // has been committed successfully.
+    if (fs.existsSync(fallbackPath)) {
+      fs.unlinkSync(fallbackPath);
+    }
+    logger.info('Google tokens saved (encrypted)');
   } catch (error) {
     logger.error({ error }, 'Failed to save Google tokens');
     throw error;
@@ -274,16 +302,24 @@ export function loadGoogleTokens(): GoogleTokens | null {
 
   try {
     // Try encrypted storage first
-    if (safeStorage.isEncryptionAvailable() && fs.existsSync(tokenPath)) {
+    if (isStrongEncryptionAvailable() && fs.existsSync(tokenPath)) {
       const encrypted = fs.readFileSync(tokenPath);
       const json = safeStorage.decryptString(encrypted);
       return JSON.parse(json) as GoogleTokens;
     }
 
-    // Fallback to plain JSON
+    // Migrate the legacy plaintext fallback only when a strong keyring is
+    // available. Otherwise fail closed rather than handing credentials to the
+    // running application from unprotected storage.
     if (fs.existsSync(fallbackPath)) {
+      if (!isStrongEncryptionAvailable()) {
+        logger.error('Refusing to load plaintext Google tokens without secure storage');
+        return null;
+      }
       const json = fs.readFileSync(fallbackPath, 'utf-8');
-      return JSON.parse(json) as GoogleTokens;
+      const tokens = JSON.parse(json) as GoogleTokens;
+      saveGoogleTokens(tokens);
+      return tokens;
     }
   } catch (error) {
     logger.error({ error }, 'Failed to load Google tokens');
@@ -306,6 +342,7 @@ export function clearGoogleTokens(): void {
     logger.info('Google tokens cleared');
   } catch (error) {
     logger.error({ error }, 'Failed to clear Google tokens');
+    throw error;
   }
 }
 

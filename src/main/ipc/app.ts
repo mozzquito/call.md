@@ -1,6 +1,7 @@
 import { ipcMain, shell, Notification, BrowserWindow } from 'electron';
-import { loadAppConfig, loadRuntimeConfig, clearAppConfig, saveAppConfig } from '../lib/config';
-import { VideoDBService } from '../services/videodb.service';
+import { loadAppConfig, loadRuntimeConfig, saveAppConfig } from '../lib/config';
+import { logoutAccount, rotateApiKey } from '../services/account.service';
+import { getUserByAccessToken } from '../db';
 import { getServerStatus } from '../server';
 import { createChildLogger } from '../lib/logger';
 import { SaveSettingsInputSchema } from '../../shared/schemas/config.schema';
@@ -22,11 +23,14 @@ export function setupAppHandlers(): void {
     }> => {
       const appConfig = loadAppConfig();
       const runtimeConfig = loadRuntimeConfig();
+      const user = appConfig.accessToken
+        ? getUserByAccessToken(appConfig.accessToken)
+        : undefined;
 
       return {
         accessToken: appConfig.accessToken,
         userName: appConfig.userName,
-        apiKey: appConfig.apiKey,
+        apiKey: user?.apiKey,
         apiUrl: runtimeConfig.apiUrl,
         transcriptionLanguage: appConfig.transcriptionLanguage || AUTO_LANGUAGE,
       };
@@ -54,13 +58,41 @@ export function setupAppHandlers(): void {
       }
 
       try {
+        const currentConfig = loadAppConfig();
+        if (
+          parsed.data.apiKey &&
+          currentConfig.accessToken &&
+          currentConfig.apiKey &&
+          parsed.data.apiKey !== currentConfig.apiKey
+        ) {
+          return { success: false, error: 'Use the account API-key change flow' };
+        }
+
         // Merge so a partial update never clears the other fields.
-        saveAppConfig({ ...loadAppConfig(), ...parsed.data });
+        saveAppConfig({ ...currentConfig, ...parsed.data });
         return { success: true };
       } catch (error) {
         const err = error as Error;
         logger.error({ error: err.message }, 'Failed to save settings');
         return { success: false, error: err.message };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'change-api-key',
+    async (_event, apiKey: unknown): Promise<{ success: boolean; error?: string }> => {
+      if (typeof apiKey !== 'string' || !apiKey.trim()) {
+        return { success: false, error: 'API key is required' };
+      }
+
+      try {
+        await rotateApiKey(apiKey);
+        return { success: true };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to change API key';
+        logger.error({ error: message }, 'Failed to change API key');
+        return { success: false, error: message };
       }
     }
   );
@@ -72,8 +104,7 @@ export function setupAppHandlers(): void {
 
   ipcMain.handle('logout', async (): Promise<void> => {
     logger.info('User logging out');
-    clearAppConfig();
-    VideoDBService.clearCache();
+    await logoutAccount();
   });
 
   ipcMain.handle('open-external-link', async (_event, url: string): Promise<void> => {

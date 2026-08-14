@@ -10,14 +10,13 @@ import { v4 as uuid } from 'uuid';
 import { createChildLogger } from '../lib/logger';
 import { getEnabledWorkflows } from '../db';
 import { validateWebhookUrl } from '../lib/url-guard';
+import { postWebhook } from '../lib/webhook-request';
 import type {
   WorkflowWebhookPayload,
   WorkflowWebhookResult,
 } from '../../shared/types/workflow.types';
 
 const logger = createChildLogger('workflow-webhook');
-
-const WEBHOOK_TIMEOUT_MS = 30000; // 30 seconds
 
 export interface MeetingCompletionData {
   recordingId: number;
@@ -125,24 +124,7 @@ async function callWebhook(
       };
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
-
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Call.md/1.0',
-        'X-Workflow-Call-Id': payload.callId,
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-      // Following a redirect would skip the checks above and could land on an
-      // internal address.
-      redirect: 'error',
-    });
-
-    clearTimeout(timeoutId);
+    const response = await postWebhook(webhookUrl, payload, validation.addresses ?? []);
 
     const responseTime = Date.now() - startTime;
 

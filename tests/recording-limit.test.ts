@@ -11,6 +11,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import Module from 'node:module';
+import { EventEmitter } from 'node:events';
+
+const powerMonitor = new EventEmitter();
 
 const electronPath = require.resolve('electron');
 require.cache[electronPath] = Object.assign(new Module(electronPath), {
@@ -20,6 +23,7 @@ require.cache[electronPath] = Object.assign(new Module(electronPath), {
   exports: {
     app: { getPath: () => os.tmpdir(), isPackaged: true },
     safeStorage: { isEncryptionAvailable: () => false },
+    powerMonitor,
   },
 });
 
@@ -112,6 +116,44 @@ test('paused time does not count toward the limit', (t) => {
 
   t.mock.timers.tick(1);
   assert.equal(spy.calls.stops, 1, 'stops after two hours of recording, not wall-clock');
+});
+
+test('time spent in system sleep does not count toward the limit', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  t.after(() => clearRecordingLimit());
+
+  const spy = spyCallbacks();
+  startRecordingLimit(spy);
+
+  t.mock.timers.tick(30 * MINUTE);
+  powerMonitor.emit('suspend');
+  t.mock.timers.tick(8 * 60 * MINUTE);
+
+  assert.equal(spy.calls.stops, 0);
+  assert.equal(getRecordingTimeRemainingMs(), MAX_RECORDING_DURATION_MS - 30 * MINUTE);
+
+  powerMonitor.emit('resume');
+  t.mock.timers.tick(MAX_RECORDING_DURATION_MS - 30 * MINUTE);
+  assert.equal(spy.calls.stops, 1);
+});
+
+test('system resume does not undo an explicit user pause', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  t.after(() => clearRecordingLimit());
+
+  const spy = spyCallbacks();
+  startRecordingLimit(spy);
+  pauseRecordingLimit();
+  powerMonitor.emit('suspend');
+  powerMonitor.emit('resume');
+
+  t.mock.timers.tick(MAX_RECORDING_DURATION_MS * 2);
+  assert.equal(spy.calls.stops, 0);
+  assert.equal(getRecordingTimeRemainingMs(), MAX_RECORDING_DURATION_MS);
+
+  resumeRecordingLimit();
+  t.mock.timers.tick(MAX_RECORDING_DURATION_MS);
+  assert.equal(spy.calls.stops, 1);
 });
 
 test('a warning already due still fires after a pause', (t) => {

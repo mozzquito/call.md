@@ -20,6 +20,7 @@ const tempUserData = fs.mkdtempSync(path.join(os.tmpdir(), 'call-md-secure-store
 
 /** Reversible stand-in for the OS keyring, so round-trips are observable. */
 let encryptionAvailable = true;
+let selectedBackend = 'gnome_libsecret';
 
 const electronStub = {
   app: {
@@ -28,6 +29,7 @@ const electronStub = {
   },
   safeStorage: {
     isEncryptionAvailable: () => encryptionAvailable,
+    getSelectedStorageBackend: () => selectedBackend,
     encryptString: (plaintext: string) => {
       if (!encryptionAvailable) throw new Error('encryption unavailable');
       return Buffer.from(`keyring:${plaintext}`, 'utf-8');
@@ -51,7 +53,15 @@ require.cache[electronPath] = Object.assign(new Module(electronPath), {
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const secureStore = require('../src/main/lib/secure-store') as typeof import('../src/main/lib/secure-store');
-const { encryptSecret, decryptSecret, isEncrypted, writeFileSecure } = secureStore;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const configStore = require('../src/main/lib/config') as typeof import('../src/main/lib/config');
+const {
+  encryptSecret,
+  decryptSecret,
+  isEncrypted,
+  isStrongEncryptionAvailable,
+  writeFileSecure,
+} = secureStore;
 
 test('secrets round-trip through the keyring', () => {
   encryptionAvailable = true;
@@ -80,14 +90,171 @@ test('encrypting twice does not double-wrap', () => {
   assert.equal(isEncrypted(once), true);
 });
 
-test('falls back to plaintext when no keyring is available', () => {
+test('fails closed when no keyring is available', () => {
   encryptionAvailable = false;
 
-  const stored = encryptSecret('no-keyring-here');
-  assert.equal(stored, 'no-keyring-here', 'value stays usable without a keyring');
-  assert.equal(decryptSecret(stored), 'no-keyring-here');
+  assert.throws(
+    () => encryptSecret('no-keyring-here'),
+    /Secure credential storage is unavailable/
+  );
 
   encryptionAvailable = true;
+});
+
+test('rejects Linux basic_text and unknown safeStorage backends', () => {
+  encryptionAvailable = true;
+
+  for (const backend of ['basic_text', 'unknown']) {
+    selectedBackend = backend;
+    assert.equal(isStrongEncryptionAvailable('linux'), false, backend);
+  }
+
+  selectedBackend = 'gnome_libsecret';
+  assert.equal(isStrongEncryptionAvailable('linux'), true);
+  assert.equal(isStrongEncryptionAvailable('darwin'), true);
+});
+
+test('does not decrypt credentials through Linux basic_text', () => {
+  const originalPlatform = process.platform;
+  encryptionAvailable = true;
+  selectedBackend = 'gnome_libsecret';
+  const stored = encryptSecret('protected-api-key');
+
+  try {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    selectedBackend = 'basic_text';
+    assert.equal(decryptSecret(stored), '');
+  } finally {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+    selectedBackend = 'gnome_libsecret';
+  }
+});
+
+test('Google tokens are never written through Linux basic_text', () => {
+  const originalPlatform = process.platform;
+  const encryptedPath = path.join(tempUserData, 'google_tokens.enc');
+  const fallbackPath = path.join(tempUserData, 'google_tokens.json');
+
+  try {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    encryptionAvailable = true;
+    selectedBackend = 'basic_text';
+
+    assert.throws(
+      () => configStore.saveGoogleTokens({
+        accessToken: 'google-access',
+        refreshToken: 'google-refresh',
+        expiresAt: Date.now() + 60_000,
+      }),
+      /Secure credential storage is unavailable/
+    );
+    assert.equal(fs.existsSync(encryptedPath), false);
+    assert.equal(fs.existsSync(fallbackPath), false);
+  } finally {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+    selectedBackend = 'gnome_libsecret';
+  }
+});
+
+test('legacy plaintext Google tokens migrate only with strong storage', () => {
+  const originalPlatform = process.platform;
+  const encryptedPath = path.join(tempUserData, 'google_tokens.enc');
+  const fallbackPath = path.join(tempUserData, 'google_tokens.json');
+  const tokens = {
+    accessToken: 'legacy-access',
+    refreshToken: 'legacy-refresh',
+    expiresAt: Date.now() + 60_000,
+  };
+
+  try {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    fs.writeFileSync(fallbackPath, JSON.stringify(tokens), { mode: 0o600 });
+    selectedBackend = 'basic_text';
+    assert.equal(configStore.loadGoogleTokens(), null);
+    assert.equal(fs.existsSync(fallbackPath), true);
+
+    selectedBackend = 'gnome_libsecret';
+    assert.deepEqual(configStore.loadGoogleTokens(), tokens);
+    assert.equal(fs.existsSync(fallbackPath), false);
+    assert.equal(fs.existsSync(encryptedPath), true);
+  } finally {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+    selectedBackend = 'gnome_libsecret';
+    for (const tokenPath of [encryptedPath, fallbackPath]) {
+      if (fs.existsSync(tokenPath)) fs.unlinkSync(tokenPath);
+    }
+  }
+});
+
+test('desktop config does not duplicate the database API key', () => {
+  const configPath = path.join(tempUserData, 'config.json');
+  configStore.saveAppConfig({
+    accessToken: 'desktop-access-token',
+    userName: 'Local User',
+    apiKey: 'database-owned-api-key',
+  });
+
+  const stored = JSON.parse(fs.readFileSync(configPath, 'utf8')) as Record<string, unknown>;
+  assert.equal(stored.apiKey, undefined);
+  assert.notEqual(stored.accessToken, 'desktop-access-token');
+
+  const loaded = configStore.loadAppConfig();
+  assert.equal(loaded.accessToken, 'desktop-access-token');
+  assert.equal(loaded.apiKey, undefined);
+
+  fs.unlinkSync(configPath);
+});
+
+test('legacy encrypted desktop API keys are removed on first load', () => {
+  const configPath = path.join(tempUserData, 'config.json');
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify({
+      accessToken: encryptSecret('desktop-access-token'),
+      apiKey: encryptSecret('legacy-duplicated-api-key'),
+      userName: 'Local User',
+    }),
+    { mode: 0o600 }
+  );
+
+  const loaded = configStore.loadAppConfig();
+  assert.equal(loaded.accessToken, 'desktop-access-token');
+  assert.equal(loaded.apiKey, undefined);
+
+  const migrated = JSON.parse(fs.readFileSync(configPath, 'utf8')) as Record<string, unknown>;
+  assert.equal(migrated.apiKey, undefined);
+  assert.notEqual(migrated.accessToken, 'desktop-access-token');
+
+  fs.unlinkSync(configPath);
+});
+
+test('legacy API keys are removed even when Linux keyring decryption is unavailable', () => {
+  const originalPlatform = process.platform;
+  const configPath = path.join(tempUserData, 'config.json');
+  const encryptedAccessToken = encryptSecret('desktop-access-token');
+  const encryptedApiKey = encryptSecret('legacy-duplicated-api-key');
+
+  try {
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({ accessToken: encryptedAccessToken, apiKey: encryptedApiKey }),
+      { mode: 0o600 }
+    );
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    selectedBackend = 'basic_text';
+
+    const loaded = configStore.loadAppConfig();
+    assert.equal(loaded.accessToken, '');
+    assert.equal(loaded.apiKey, undefined);
+
+    const migrated = JSON.parse(fs.readFileSync(configPath, 'utf8')) as Record<string, unknown>;
+    assert.equal(migrated.apiKey, undefined);
+    assert.equal(migrated.accessToken, encryptedAccessToken);
+  } finally {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+    selectedBackend = 'gnome_libsecret';
+    if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+  }
 });
 
 test('empty values are left alone', () => {

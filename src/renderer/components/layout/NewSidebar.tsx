@@ -10,10 +10,11 @@
  */
 
 import React from 'react';
-import { LogOut } from 'lucide-react';
 import { useConfigStore } from '../../stores/config.store';
 import { useSessionStore } from '../../stores/session.store';
 import { getElectronAPI } from '../../api/ipc';
+import { logoutAndClearLocalAuth } from '../../lib/logout';
+import { useCopilotStore } from '../../stores/copilot.store';
 import logoIcon from '../../../../resources/icon-color-black-bg.png';
 
 type Tab = 'home' | 'history' | 'settings';
@@ -144,10 +145,15 @@ export function NewSidebar({ activeTab, onTabChange }: NewSidebarProps) {
 
   const handleLogout = async () => {
     const api = getElectronAPI();
-    if (api) {
-      await api.app.logout();
+    try {
+      await logoutAndClearLocalAuth(api?.app ?? null, () => {
+        configStore.clearAuth();
+        useCopilotStore.getState().reset();
+      });
+    } catch (error) {
+      console.error('Failed to log out:', error);
+      window.alert(error instanceof Error ? error.message : 'Failed to log out. Please retry.');
     }
-    configStore.clearAuth();
   };
 
   const tabs: { id: Tab; icon: (active: boolean) => React.ReactNode; label: string }[] = [

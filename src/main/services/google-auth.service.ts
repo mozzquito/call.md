@@ -28,6 +28,8 @@ const OAUTH_PORT_END = 51799;
 
 // Token refresh mutex to prevent concurrent refreshes
 let refreshPromise: Promise<GoogleTokens> | null = null;
+let authGeneration = 0;
+let cancelActiveAuthFlow: (() => void) | null = null;
 
 /**
  * Find a free port in the specified range
@@ -109,7 +111,8 @@ async function exchangeCodeForTokens(
   clientId: string,
   clientSecret: string,
   redirectUri: string,
-  tokenUri: string
+  tokenUri: string,
+  isCurrent: () => boolean = () => true
 ): Promise<GoogleTokens> {
   const response = await fetch(tokenUri, {
     method: 'POST',
@@ -146,6 +149,10 @@ async function exchangeCodeForTokens(
     expiresAt: Date.now() + data.expires_in * 1000,
   };
 
+  if (!isCurrent()) {
+    throw new Error('OAuth flow was cancelled');
+  }
+
   saveGoogleTokens(tokens);
   log.info('Tokens exchanged and saved successfully');
 
@@ -157,12 +164,17 @@ async function exchangeCodeForTokens(
  * Opens a BrowserWindow for user consent and waits for callback
  */
 export async function startAuthFlow(): Promise<GoogleTokens> {
+  cancelActiveAuthFlow?.();
+  const generation = ++authGeneration;
   const config = loadGoogleOAuthConfig();
   if (!config) {
     throw new Error('Google OAuth config not found');
   }
 
   const port = await findFreePort();
+  if (generation !== authGeneration) {
+    throw new Error('OAuth flow was cancelled');
+  }
   const redirectUri = `http://localhost:${port}`;
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -173,6 +185,8 @@ export async function startAuthFlow(): Promise<GoogleTokens> {
     let authWindow: BrowserWindow | null = null;
     let server: http.Server | null = null;
     let handled = false;
+    let cancelled = false;
+    let timeout: NodeJS.Timeout | null = null;
 
     const cleanup = () => {
       if (server) {
@@ -183,6 +197,19 @@ export async function startAuthFlow(): Promise<GoogleTokens> {
         authWindow.close();
         authWindow = null;
       }
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      if (generation === authGeneration) cancelActiveAuthFlow = null;
+    };
+
+    cancelActiveAuthFlow = () => {
+      if (cancelled) return;
+      cancelled = true;
+      handled = true;
+      cleanup();
+      reject(new Error('OAuth flow was cancelled'));
     };
 
     // Create temporary HTTP server to receive callback
@@ -254,7 +281,8 @@ export async function startAuthFlow(): Promise<GoogleTokens> {
             config.clientId,
             config.clientSecret,
             redirectUri,
-            config.tokenUri
+            config.tokenUri,
+            () => !cancelled && generation === authGeneration
           );
           cleanup();
           resolve(tokens);
@@ -299,7 +327,7 @@ export async function startAuthFlow(): Promise<GoogleTokens> {
     });
 
     // Timeout after 5 minutes
-    setTimeout(() => {
+    timeout = setTimeout(() => {
       if (!handled) {
         cleanup();
         reject(new Error('OAuth flow timed out'));
@@ -412,6 +440,10 @@ export async function getValidAccessToken(): Promise<string | null> {
  * Sign out - clear stored tokens
  */
 export function signOut(): void {
+  authGeneration += 1;
+  cancelActiveAuthFlow?.();
+  cancelActiveAuthFlow = null;
+  refreshPromise = null;
   clearGoogleTokens();
   log.info('Signed out of Google');
 }
