@@ -66,9 +66,8 @@ onboarding.
 | Linux | Build from source with `npm run dist:linux` | App features available; recording not supported |
 
 The VideoDB capture SDK now ships recording binaries for `darwin-arm64`,
-`darwin-x64`, and `win32-x64`. Call.md stages the matching checksum-pinned
-artifact during packaging and verifies that the capture executable and SQLite
-native module are present in the packaged app.
+`darwin-x64`, and `win32-x64`. Call.md verifies that the capture executable and
+SQLite native module are present in the packaged app.
 
 Windows x64 recording is supported by the source build, but the project does
 not currently publish a Windows installer. Linux and Windows ARM64 builds can
@@ -219,10 +218,10 @@ npm run dist:win
 ```
 
 Build and run the release candidate on its target OS. The project uses published
-target prebuilds for `better-sqlite3` and checksum-pinned VideoDB capture
-artifacts, so a macOS development machine can cross-package a Windows x64
-directory build for structural verification. That does not replace native
-Windows testing or installer signing. This follows
+target prebuilds for `better-sqlite3` and packaged VideoDB capture binaries, so
+a macOS development machine can cross-package a Windows x64 directory build for
+structural verification. That does not replace native Windows testing or
+installer signing. This follows
 [electron-builder's multi-platform build guidance](https://www.electron.build/docs/features/multi-platform-build),
 which requires target prebuilds for native dependencies and still needs
 target-platform validation.

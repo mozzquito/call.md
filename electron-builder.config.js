@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { prepareVideoDBCapture } = require('./build/prepare-videodb-capture.cjs');
 
 function getTargetArchName(arch) {
   if (arch === 1 || arch === 'x64') return 'x64';
@@ -108,16 +107,6 @@ const config = {
     const targetArch = context.arch;
     const archName = getTargetArchName(targetArch);
     console.log('Before pack - target arch:', targetArch, archName);
-    const platformName = context.packager.platform.name;
-    const nodePlatform = platformName === 'mac'
-      ? 'darwin'
-      : platformName === 'windows'
-        ? 'win32'
-        : null;
-
-    if (nodePlatform) {
-      await prepareVideoDBCapture(context.packager.projectDir, nodePlatform, archName);
-    }
   },
   afterPack: async (context) => {
     const appOutDir = context.appOutDir;
