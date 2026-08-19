@@ -35,6 +35,8 @@ test('rejects loopback and local hostnames', () => {
     'http://127.0.0.1:51731/api/trpc',
     'http://localhost:51731/api',
     'http://[::1]:51731/api',
+    'http://[::ffff:127.0.0.1]:51731/api',
+    'http://[::ffff:7f00:1]:51731/api',
     'http://myapp.local/hook',
     'http://0.0.0.0/hook',
   ]) {
@@ -49,6 +51,17 @@ test('rejects private and link-local ranges', () => {
     'http://192.168.1.10/hook',
     'http://169.254.169.254/latest/meta-data/', // cloud metadata
     'http://100.64.0.1/hook', // carrier-grade NAT
+  ]) {
+    assert.equal(validateWebhookUrlSyntax(url).valid, false, url);
+  }
+});
+
+test('rejects non-global IPv4 special-purpose ranges', () => {
+  for (const url of [
+    'http://192.0.2.1/hook',
+    'http://192.88.99.1/hook',
+    'http://198.51.100.1/hook',
+    'http://203.0.113.1/hook',
   ]) {
     assert.equal(validateWebhookUrlSyntax(url).valid, false, url);
   }
@@ -69,7 +82,35 @@ test('classifies IPv6 forms', () => {
   assert.equal(isBlockedAddress('fe80::1').blocked, true);
   assert.equal(isBlockedAddress('fd00::1').blocked, true);
   assert.equal(isBlockedAddress('::ffff:127.0.0.1').blocked, true);
+  assert.equal(isBlockedAddress('::ffff:7f00:1').blocked, true);
+  assert.equal(isBlockedAddress('0:0:0:0:0:ffff:7f00:1').blocked, true);
+  assert.equal(isBlockedAddress('::7f00:1').blocked, true);
+  assert.equal(isBlockedAddress('fec0::1').blocked, true);
+  assert.equal(isBlockedAddress('ff02::1').blocked, true);
+  assert.equal(isBlockedAddress('2001:db8::1').blocked, true);
+  assert.equal(isBlockedAddress('100::1').blocked, true);
+  assert.equal(isBlockedAddress('100:0:0:1::1').blocked, true);
+  assert.equal(isBlockedAddress('2001:2::1').blocked, true);
+  assert.equal(isBlockedAddress('3fff::1').blocked, true);
+  assert.equal(isBlockedAddress('5f00::1').blocked, true);
+  assert.equal(isBlockedAddress('::ffff:8.8.8.8').blocked, false);
   assert.equal(isBlockedAddress('2606:4700:4700::1111').blocked, false);
+});
+
+test('rejects special-use IPv6 webhook literals', () => {
+  for (const url of [
+    'http://[::7f00:1]/hook',
+    'http://[fec0::1]/hook',
+    'http://[ff02::1]/hook',
+    'http://[2001:db8::1]/hook',
+    'http://[100::1]/hook',
+    'http://[100:0:0:1::1]/hook',
+    'http://[2001:2::1]/hook',
+    'http://[3fff::1]/hook',
+    'http://[5f00::1]/hook',
+  ]) {
+    assert.equal(validateWebhookUrlSyntax(url).valid, false, url);
+  }
 });
 
 test('keeps public IPv4 addresses next to blocked ranges usable', () => {
@@ -94,4 +135,5 @@ test('resolves hostnames before allowing them', async () => {
 test('literal public IPs skip the DNS lookup and pass', async () => {
   const result = await validateWebhookUrl('https://8.8.8.8/hook');
   assert.equal(result.valid, true);
+  assert.deepEqual(result.addresses, [{ address: '8.8.8.8', family: 4 }]);
 });

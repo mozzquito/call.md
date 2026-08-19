@@ -52,8 +52,9 @@ export const useConfigStore = create<ConfigState>()(
           set((state) => ({
             apiKey: settings.apiKey ?? state.apiKey,
             apiUrl: settings.apiUrl ?? state.apiUrl,
-            userName: state.userName ?? settings.userName ?? null,
-            accessToken: state.accessToken ?? settings.accessToken ?? null,
+            userName: settings.userName ?? null,
+            accessToken: settings.accessToken ?? null,
+            onboardingComplete: Boolean(settings.accessToken) && state.onboardingComplete,
             transcriptionLanguage: settings.transcriptionLanguage || AUTO_LANGUAGE,
           }));
         } catch {

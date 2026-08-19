@@ -30,6 +30,7 @@ import {
   MAX_RECORDING_DURATION_MS,
   RECORDING_LIMIT_STOP_GRACE_MS,
 } from '../../shared/constants/recording';
+import { getRecordingPlatformSupport } from '../lib/capture-platform';
 
 const logger = createChildLogger('ipc-capture');
 
@@ -62,26 +63,6 @@ let currentApiKey: string | null = null;
 let currentAccessToken: string | null = null;
 let currentApiUrl: string | undefined = undefined;
 let currentCollectionId: string | null = null;
-
-/**
- * Whether the VideoDB capture engine can run on this OS.
- *
- * `@videodb/recorder` only ships binaries for darwin-x64 and darwin-arm64, so
- * on any other platform the recorder fails deep inside the native layer with
- * an unhelpful error. Say so up front instead.
- *
- * See https://github.com/video-db/call.md/issues/29.
- */
-function getRecordingPlatformSupport(): { supported: boolean; reason?: string } {
-  if (process.platform === 'darwin') return { supported: true };
-
-  return {
-    supported: false,
-    reason:
-      `Recording is not available on ${process.platform} yet. The VideoDB capture engine ` +
-      'currently ships macOS binaries only - see https://github.com/video-db/call.md/issues/29.',
-  };
-}
 
 function ensureVideoDBPatched(): void {
   if (!app.isPackaged) return;
@@ -944,4 +925,8 @@ export async function shutdownCaptureClient(): Promise<void> {
 
 export function isCaptureActive(): boolean {
   return captureClient !== null;
+}
+
+export function isRecordingActive(): boolean {
+  return currentSessionId !== null;
 }

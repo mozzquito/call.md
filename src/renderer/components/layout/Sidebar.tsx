@@ -4,6 +4,8 @@ import { Button } from '../ui/button';
 import { useConfigStore } from '../../stores/config.store';
 import { getElectronAPI } from '../../api/ipc';
 import { cn } from '../../lib/utils';
+import { logoutAndClearLocalAuth } from '../../lib/logout';
+import { useCopilotStore } from '../../stores/copilot.store';
 
 interface SidebarProps {
   activeTab: 'recording' | 'history' | 'settings';
@@ -15,10 +17,15 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   const handleLogout = async () => {
     const api = getElectronAPI();
-    if (api) {
-      await api.app.logout();
+    try {
+      await logoutAndClearLocalAuth(api?.app ?? null, () => {
+        configStore.clearAuth();
+        useCopilotStore.getState().reset();
+      });
+    } catch (error) {
+      console.error('Failed to log out:', error);
+      window.alert(error instanceof Error ? error.message : 'Failed to log out. Please retry.');
     }
-    configStore.clearAuth();
   };
 
   const tabs = [

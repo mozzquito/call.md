@@ -8,7 +8,7 @@
 import { EventEmitter } from 'events';
 import { v4 as uuid } from 'uuid';
 import { logger } from '../../lib/logger';
-import { initLLMService } from '../llm.service';
+import { initLLMService, resetLLMService } from '../llm.service';
 import {
   updateRecording,
   getRecordingById,
@@ -129,6 +129,26 @@ export class MeetingCopilotService extends EventEmitter {
     this.apiKey = apiKey;
     initLLMService(apiKey);
     log.info('Meeting Co-Pilot initialized with API key');
+  }
+
+  /** Drops every account-bound in-memory credential and active timer. */
+  resetCredentials(): void {
+    if (this.metricsTimer) clearInterval(this.metricsTimer);
+    if (this.compressionTimer) clearInterval(this.compressionTimer);
+    this.metricsTimer = null;
+    this.compressionTimer = null;
+
+    if (this.callState) {
+      this.transcriptBuffer.clear(this.callState.sessionId);
+      this.contextManager.clear(this.callState.sessionId);
+    }
+
+    this.callState = null;
+    this.apiKey = null;
+    this.processingQueue = [];
+    this.isProcessing = false;
+    resetLLMService();
+    log.info('Meeting Co-Pilot credentials reset');
   }
 
   /**
@@ -540,6 +560,7 @@ export function getMeetingCopilot(config?: Partial<CopilotConfig>): MeetingCopil
 }
 
 export function resetMeetingCopilot(): void {
+  instance?.resetCredentials();
   instance = null;
 }
 

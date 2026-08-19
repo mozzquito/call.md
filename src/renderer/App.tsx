@@ -315,6 +315,14 @@ function PermissionsView({ onContinue }: { onContinue: () => void }) {
             >
               Continue to setup
             </button>
+            <button
+              onClick={handleSkip}
+              className="w-full flex items-center justify-center px-[16px] py-[12px] rounded-[10px] hover:bg-black/5 transition-colors"
+            >
+              <span className="text-[13px] font-medium text-[#464646] tracking-[0.13px] leading-[19.5px]">
+                I&apos;ll configure permissions later
+              </span>
+            </button>
           </div>
         </div>
 

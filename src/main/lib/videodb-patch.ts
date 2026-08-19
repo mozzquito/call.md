@@ -15,6 +15,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { createChildLogger } from './logger';
+import { getCaptureBinarySource, isCaptureCommand } from './capture-binary';
 
 const logger = createChildLogger('videodb-patch');
 
@@ -38,7 +39,10 @@ export function applyVideoDBPatches(): void {
       .join(app.getAppPath(), 'node_modules', 'videodb', 'bin')
       .replace('app.asar', 'app.asar.unpacked');
 
-    const srcDir = path.join(binBase, 'VideoDBCapture.app', 'Contents', 'MacOS');
+    const { sourceDirectory: srcDir, binaryName: binName } = getCaptureBinarySource(
+      binBase,
+      process.platform
+    );
 
     // Destination: writable userData directory
     // e.g., ~/Library/Application Support/call-md/bin
@@ -76,14 +80,13 @@ export function applyVideoDBPatches(): void {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cp = require('child_process');
     const origSpawn = cp.spawn;
-    const binName = process.platform === 'win32' ? 'capture.exe' : 'capture';
     const writableBin = path.join(destDir, binName);
 
     cp.spawn = function (cmd: string, args: string[], opts: Record<string, unknown>) {
       // Intercept calls to the capture binary
       if (
         typeof cmd === 'string' &&
-        cmd.includes('capture') &&
+        isCaptureCommand(cmd, binName) &&
         !cmd.startsWith(destDir) &&
         fs.existsSync(writableBin)
       ) {

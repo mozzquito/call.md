@@ -246,6 +246,7 @@ export interface IpcApi {
       apiKey?: string;
       transcriptionLanguage?: string;
     }) => Promise<{ success: boolean; error?: string }>;
+    changeApiKey: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
     getServerPort: () => Promise<number>;
     logout: () => Promise<void>;
     openExternalLink: (url: string) => Promise<void>;
@@ -329,6 +330,8 @@ export type IpcChannel =
   | 'open-system-settings'
   | 'get-permission-status'
   | 'get-settings'
+  | 'save-settings'
+  | 'change-api-key'
   | 'logout'
   | 'open-external-link'
   | 'show-notification'

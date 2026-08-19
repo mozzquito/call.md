@@ -43,8 +43,11 @@ const config = {
   asarUnpack: [
     'node_modules/videodb/bin/**',
     'node_modules/better-sqlite3/build/**',
+    'node_modules/better-sqlite3/prebuilds/**',
   ],
-  npmRebuild: true,
+  // better-sqlite3 ships N-API prebuilds for every supported target. Rebuilding
+  // on the packaging host breaks legitimate macOS -> Windows cross-packaging.
+  npmRebuild: false,
   nodeGypRebuild: false,
   buildDependenciesFromSource: false,
   mac: {
@@ -108,6 +111,7 @@ const config = {
   afterPack: async (context) => {
     const appOutDir = context.appOutDir;
     const platform = context.packager.platform.name;
+    const archName = getTargetArchName(context.arch);
 
     console.log('After pack:', appOutDir);
     console.log('Platform:', platform);
@@ -201,16 +205,27 @@ const config = {
         console.warn('Codesign failed (mic/screen permissions may not work):', error.message);
       }
 
-      const betterSqlitePath = path.join(
-        unpackedPath,
-        'node_modules',
-        'better-sqlite3',
-        'build',
-        'Release',
-        'better_sqlite3.node'
-      );
-      if (fs.existsSync(betterSqlitePath)) {
-        console.log('Found better-sqlite3 native module');
+      const betterSqliteCandidates = [
+        path.join(
+          unpackedPath,
+          'node_modules',
+          'better-sqlite3',
+          'prebuilds',
+          `darwin-${archName}.node`
+        ),
+        path.join(
+          unpackedPath,
+          'node_modules',
+          'better-sqlite3',
+          'build',
+          'Release',
+          'better_sqlite3.node'
+        ),
+      ];
+      const betterSqlitePath = betterSqliteCandidates.find((candidate) => fs.existsSync(candidate));
+
+      if (betterSqlitePath) {
+        console.log('Found better-sqlite3 native module at', betterSqlitePath);
         try {
           execSync(`codesign --force --sign - "${betterSqlitePath}"`);
           console.log('Codesigned better_sqlite3.node');
@@ -220,6 +235,31 @@ const config = {
       } else {
         console.warn('WARNING: better-sqlite3 native module not found');
       }
+    } else if (platform === 'windows') {
+      const unpackedPath = path.join(appOutDir, 'resources', 'app.asar.unpacked');
+      const captureExe = path.join(
+        unpackedPath,
+        'node_modules',
+        'videodb',
+        'bin',
+        'capture.exe'
+      );
+
+      if (!fs.existsSync(captureExe)) {
+        throw new Error(`Packaged Windows capture binary not found at ${captureExe}`);
+      }
+      const betterSqlitePath = path.join(
+        unpackedPath,
+        'node_modules',
+        'better-sqlite3',
+        'prebuilds',
+        'win32-x64.node'
+      );
+      if (!fs.existsSync(betterSqlitePath)) {
+        throw new Error(`Packaged Windows better-sqlite3 prebuild not found at ${betterSqlitePath}`);
+      }
+      console.log('Verified packaged Windows capture binary:', captureExe);
+      console.log('Verified packaged Windows better-sqlite3 prebuild:', betterSqlitePath);
     }
   },
 };

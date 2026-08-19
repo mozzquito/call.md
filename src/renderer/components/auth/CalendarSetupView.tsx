@@ -107,7 +107,14 @@ export function CalendarSetupView({ onConnected, onSkip }: CalendarSetupViewProp
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    // Keep an escape hatch available while the OAuth window is open. Closing
+    // that window can race with the invoke response on some Electron/macOS
+    // combinations; signing out explicitly cancels the main-process flow.
+    if (isConnecting) {
+      await window.electronAPI.calendar.signOut().catch(() => undefined);
+    }
+
     configStore.completeOnboarding();
     onSkip();
   };
@@ -211,7 +218,7 @@ export function CalendarSetupView({ onConnected, onSkip }: CalendarSetupViewProp
           {/* Skip button */}
           <button
             onClick={handleSkip}
-            disabled={isConnecting || isConnected}
+            disabled={isConnected}
             className="w-full flex items-center justify-center px-[16px] py-[12px] rounded-[10px] hover:bg-black/5 transition-colors disabled:opacity-50"
           >
             <span className="text-[13px] font-medium text-[#464646] tracking-[0.13px] leading-[19.5px]">

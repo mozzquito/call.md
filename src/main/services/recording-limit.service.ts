@@ -9,6 +9,7 @@
  * Chromium throttles renderer timers.
  */
 
+import { powerMonitor } from 'electron';
 import { createChildLogger } from '../lib/logger';
 import {
   MAX_RECORDING_DURATION_MS,
@@ -33,9 +34,11 @@ interface LimitState {
   warningTimer: NodeJS.Timeout | null;
   cutoffTimer: NodeJS.Timeout | null;
   warningFired: boolean;
+  pauseReasons: Set<'user' | 'system'>;
 }
 
 let state: LimitState | null = null;
+let powerEventsRegistered = false;
 
 /** Recording time counted so far, in ms. */
 function getElapsedMs(current: LimitState): number {
@@ -55,8 +58,8 @@ function clearTimers(current: LimitState): void {
 /**
  * (Re)arms the warning and cutoff timers from the time recorded so far.
  *
- * Timers do not advance while the machine is asleep, so the cutoff re-checks
- * the real elapsed time when it fires and re-arms if it woke up early.
+ * The power monitor pauses the tracked segment before system sleep, so sleep
+ * time is not consumed from the recording allowance.
  */
 function armTimers(current: LimitState): void {
   clearTimers(current);
@@ -75,7 +78,8 @@ function armTimers(current: LimitState): void {
       current.warningFired = true;
       current.warningTimer = null;
 
-      const msRemaining = MAX_RECORDING_DURATION_MS - getElapsedMs(current);
+      const msRemaining = Math.max(0, MAX_RECORDING_DURATION_MS - getElapsedMs(current));
+      if (msRemaining === 0) return;
       logger.info({ msRemaining }, 'Recording approaching the maximum length');
       current.callbacks.onWarning(msRemaining);
     }, warningDelay);
@@ -119,38 +123,62 @@ export function startRecordingLimit(callbacks: RecordingLimitCallbacks): void {
     warningTimer: null,
     cutoffTimer: null,
     warningFired: false,
+    pauseReasons: new Set(),
   };
 
   state = current;
+  registerPowerEvents();
   armTimers(current);
 
   logger.info({ limitMs: MAX_RECORDING_DURATION_MS }, 'Recording limit armed');
 }
 
 /** Stops the clock while the recording is paused. */
-export function pauseRecordingLimit(): void {
+function pauseFor(reason: 'user' | 'system'): void {
   const current = state;
-  if (!current || current.segmentStartedAt === null) return;
+  if (!current || current.pauseReasons.has(reason)) return;
+
+  current.pauseReasons.add(reason);
+  if (current.segmentStartedAt === null) return;
 
   current.accumulatedMs = getElapsedMs(current);
   current.segmentStartedAt = null;
   clearTimers(current);
 
-  logger.info({ elapsedMs: current.accumulatedMs }, 'Recording limit paused');
+  logger.info({ elapsedMs: current.accumulatedMs, reason }, 'Recording limit paused');
 }
 
-/** Restarts the clock after a pause. */
-export function resumeRecordingLimit(): void {
+function resumeFor(reason: 'user' | 'system'): void {
   const current = state;
-  if (!current || current.segmentStartedAt !== null) return;
+  if (!current || !current.pauseReasons.delete(reason) || current.pauseReasons.size > 0) return;
+
+  if (current.segmentStartedAt !== null) return;
 
   current.segmentStartedAt = Date.now();
   armTimers(current);
 
   logger.info(
-    { remainingMs: MAX_RECORDING_DURATION_MS - getElapsedMs(current) },
+    { remainingMs: MAX_RECORDING_DURATION_MS - getElapsedMs(current), reason },
     'Recording limit resumed'
   );
+}
+
+function registerPowerEvents(): void {
+  if (powerEventsRegistered) return;
+
+  powerMonitor.on('suspend', () => pauseFor('system'));
+  powerMonitor.on('resume', () => resumeFor('system'));
+  powerEventsRegistered = true;
+}
+
+/** Stops the clock while the recording is paused. */
+export function pauseRecordingLimit(): void {
+  pauseFor('user');
+}
+
+/** Restarts the clock after a user pause. */
+export function resumeRecordingLimit(): void {
+  resumeFor('user');
 }
 
 /** Clears the tracker. Safe to call when nothing is being tracked. */

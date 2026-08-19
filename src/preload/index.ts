@@ -387,6 +387,7 @@ const api: IpcApi = {
       apiKey?: string;
       transcriptionLanguage?: string;
     }) => ipcRenderer.invoke('save-settings', settings),
+    changeApiKey: (apiKey: string) => ipcRenderer.invoke('change-api-key', apiKey),
     getServerPort: () => ipcRenderer.invoke('get-server-port'),
     logout: () => ipcRenderer.invoke('logout'),
     openExternalLink: (url: string) => ipcRenderer.invoke('open-external-link', url),

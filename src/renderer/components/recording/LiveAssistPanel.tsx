@@ -148,7 +148,7 @@ interface InsightSectionProps {
   onToggleItem: (index: number) => void;
   variant: 'say' | 'ask';
   emptyText: string;
-  scrollRef: React.RefObject<HTMLDivElement>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
   className?: string;
 }
 

@@ -13,7 +13,7 @@ import type {
   ChatCompletionAssistantMessageParam,
 } from 'openai/resources/chat/completions';
 import { logger } from '../lib/logger';
-import { loadAppConfig, loadRuntimeConfig } from '../lib/config';
+import { loadRuntimeConfig } from '../lib/config';
 
 const log = logger.child({ module: 'llm-service' });
 
@@ -90,11 +90,12 @@ export class LLMService {
   private static instance: LLMService | null = null;
 
   constructor(config?: Partial<LLMConfig>) {
-    const appConfig = loadAppConfig();
     const runtimeConfig = loadRuntimeConfig();
 
     this.config = {
-      apiKey: config?.apiKey || appConfig.apiKey || '',
+      // The authenticated database row owns the key; callers initialize this
+      // singleton explicitly after renderer auth hydration.
+      apiKey: config?.apiKey || '',
       apiBase: config?.apiBase || runtimeConfig.apiUrl || 'https://api.videodb.io',
       model: config?.model || 'ultra',
       maxTokens: config?.maxTokens || 4096,
@@ -456,6 +457,10 @@ export function getLLMService(): LLMService {
 export function initLLMService(apiKey: string): LLMService {
   LLMService.resetInstance();
   return LLMService.getInstance({ apiKey });
+}
+
+export function resetLLMService(): void {
+  LLMService.resetInstance();
 }
 
 export default LLMService;

@@ -49,28 +49,31 @@ curl -fsSL https://artifacts.videodb.io/call.md/install | bash
 
 After installation:
 1. Launch Call.md from Applications or Spotlight
-2. Grant system permissions when prompted (Microphone and Screen Recording required)
+2. Grant system permissions when prompted, or configure them later from Settings
 3. Register with your VideoDB API key ([get one free](https://console.videodb.io))
+
+Microphone and screen-recording permissions are required before the first
+recording. Google Calendar is optional and can be connected or skipped during
+onboarding.
 
 ### Platform Support
 
 | Platform | Installer | Status |
 |----------|-----------|--------|
 | macOS 12+ (Apple Silicon & Intel) | `curl` command above | Supported |
-| Windows | — | Not available yet ([#29](https://github.com/video-db/call.md/issues/29)) |
-| Linux | — | Not available yet |
+| Windows x64 | Build from source with `npm run dist:win` | Recording supported; no hosted installer yet |
+| Windows ARM64 | — | Recording not supported |
+| Linux | Build from source with `npm run dist:linux` | App features available; recording not supported |
 
-**There is no Windows installer today.** The blocker is not the Electron app —
-that builds on Windows and Linux — but the capture engine underneath it:
-[`@videodb/recorder`](https://www.npmjs.com/package/@videodb/recorder) ships
-binaries for `darwin-x64` and `darwin-arm64` only. With no Windows binary there
-is nothing to record microphone, system audio or screen with, so the app now
-says so up front instead of failing partway into a meeting.
+The VideoDB capture SDK now ships recording binaries for `darwin-arm64`,
+`darwin-x64`, and `win32-x64`. Call.md verifies that the capture executable and
+SQLite native module are present in the packaged app.
 
-You can still build and run everything around recording (UI, MCP servers,
-workflows, exports) on Windows and Linux — see
-[Building for other platforms](#building-for-other-platforms). Follow
-[#29](https://github.com/video-db/call.md/issues/29) for Windows support.
+Windows x64 recording is supported by the source build, but the project does
+not currently publish a Windows installer. Linux and Windows ARM64 builds can
+run the UI, MCP servers, workflows, history, settings, and exports, but the app
+will reject recording before launch because no capture binary is available.
+See [Building for other platforms](#building-for-other-platforms).
 
 ---
 
@@ -104,11 +107,12 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 - **Google Calendar Integration** - Sync upcoming meetings
 
 ### Privacy & Storage
-- **2 Hour Recording Limit** - Recordings stop themselves after 2 hours of recording time, with a warning 5 minutes before
-- **Local-First** - SQLite database, all data stored on your machine
+- **2 Hour Recording Limit** - Recordings stop themselves after 2 hours of active recording time, with a warning 5 minutes before; pauses and system sleep do not consume the allowance
+- **Local-First** - Settings, meeting history, transcripts, and generated metadata are stored in the local SQLite database
 - **Screen & Audio Recording** - Capture screen, microphone, and system audio simultaneously
 - **Recording History** - Browse and review past recordings with full transcripts
 - **VideoDB Integration** - Transcription and AI features require internet connectivity
+- **Account Controls** - Validate and rotate the VideoDB API key from Settings, or log out and clear persisted session and Google credentials
 
 ## How It Works
 
@@ -124,7 +128,7 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 
 ## Tech Stack
 
-- **Electron 34** - Desktop application framework
+- **Electron 42** - Desktop application framework
 - **TypeScript 5.8** - Full type safety across main and renderer processes
 - **React 19** - Modern UI framework with concurrent features
 - **Tailwind CSS + shadcn/ui** - Utility-first styling with high-quality component primitives
@@ -132,18 +136,18 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 - **Hono** - Fast HTTP server for tRPC API endpoints
 - **Drizzle ORM + SQLite** - Type-safe database operations with local storage
 - **Zustand** - Lightweight state management
-- **VideoDB SDK** (0.2.4) - Screen recording, transcription, and video processing
+- **VideoDB SDK** (0.3.0) - Screen recording, transcription, and video processing
 - **MCP SDK** (1.0.0) - Model Context Protocol for tool integrations
 - **OpenAI SDK** (6.19.0) - LLM calls via VideoDB's OpenAI-compatible API
 - **Vite** - Fast frontend bundling and hot module replacement
 
 ## Prerequisites
 
-- macOS 12+ (Monterey or later) — required for recording, see [Platform Support](#platform-support)
+- macOS 12+ (Monterey or later) or Windows x64 — required for recording, see [Platform Support](#platform-support)
 - VideoDB API Key ([console.videodb.io](https://console.videodb.io))
 - System permissions: Microphone and Screen Recording
 
-For development: Node.js 18+ and npm 10+
+For development: Node.js 22.12+ and npm 10+
 
 ## Getting Started (Users)
 
@@ -154,7 +158,7 @@ For development: Node.js 18+ and npm 10+
 
 2. **Launch** the app and enter your VideoDB API key ([get one free](https://console.videodb.io))
 
-3. **Grant permissions** when prompted (Microphone and Screen Recording)
+3. **Grant permissions** when prompted, or configure them later in Settings
 
 4. **Start Recording** - Click "New Meeting" and begin your first session
 
@@ -194,8 +198,8 @@ The app will transcribe in real-time, show live assists, and generate a summary 
 | `npm run dev` | Start development mode (main + renderer with hot reload) |
 | `npm run build` | Build TypeScript and React for production |
 | `npm run dist:mac` | Build macOS distributable DMG |
-| `npm run dist:win` | Build Windows NSIS installer (recording unsupported, see below) |
-| `npm run dist:linux` | Build Linux AppImage (recording unsupported, see below) |
+| `npm run dist:win` | Build Windows x64 NSIS installer with recording support |
+| `npm run dist:linux` | Build Linux AppImage (recording unavailable, see below) |
 | `npm run typecheck` | Run TypeScript type checking |
 | `npm run test` | Run unit tests |
 | `npm run lint` | Run ESLint |
@@ -209,17 +213,28 @@ electron-builder is already configured for Windows (NSIS) and Linux (AppImage),
 so you can produce an installer on those platforms:
 
 ```bash
-npm install && npm run rebuild && npm run dist:win
+npm ci
+npm run dist:win
 ```
 
-Build on the target OS. Cross-building is not supported here because
-`better-sqlite3` is a native module that has to be rebuilt for the host.
+Build and run the release candidate on its target OS. The project uses published
+target prebuilds for `better-sqlite3` and packaged VideoDB capture binaries, so
+a macOS development machine can cross-package a Windows x64 directory build for
+structural verification. That does not replace native Windows testing or
+installer signing. This follows
+[electron-builder's multi-platform build guidance](https://www.electron.build/docs/features/multi-platform-build),
+which requires target prebuilds for native dependencies and still needs
+target-platform validation.
 
-What works in such a build: the full UI, MCP servers, workflows, settings,
-history, and markdown export. What does not: starting a recording — the VideoDB
-capture engine has no binary for the platform, and the app returns a clear
-error rather than crashing. Track
-[#29](https://github.com/video-db/call.md/issues/29) for progress.
+Recording support is available on macOS arm64/x64 and Windows x64. On Linux and
+Windows ARM64, the full UI, MCP servers, workflows, settings, history, and
+markdown export remain available; starting a recording returns a clear
+unsupported-platform error.
+
+Release artifacts must be signed with the project's platform credentials.
+macOS releases also need notarization and stapling. Unsigned local builds can
+receive a different Keychain or OS-permission identity on every rebuild and are
+not representative of the installed release.
 
 ## MCP Server Setup
 
@@ -293,19 +308,24 @@ The app exposes IPC APIs through the preload script:
 - `window.electronAPI.mcp.*` - MCP server and tool operations
 - `window.electronAPI.mcpOn.*` - MCP event subscriptions
 
-## Permissions (macOS)
+## Permissions
 
-The app requires the following permissions:
+The app requires the following permissions before recording:
 - **Microphone** - For voice recording
 - **Screen Recording** - For screen capture
 
-Grant these in **System Preferences > Privacy & Security**.
+On macOS, grant them in **System Settings → Privacy & Security**. Newer macOS
+versions label the screen permission **Screen & System Audio Recording**. On
+Windows, enable microphone access for desktop apps when prompted. You can skip
+permission setup during onboarding and return to it from Settings, but recording
+will remain unavailable until the required permissions are granted.
 
 ## Troubleshooting
 
 **Recording not starting:**
 - Check microphone and screen recording permissions in System Settings
 - Verify VideoDB API key is valid
+- Confirm the platform is macOS arm64/x64 or Windows x64
 
 **Transcription not appearing:**
 - Ensure mic and system audio are enabled in settings
@@ -318,6 +338,7 @@ Grant these in **System Preferences > Privacy & Security**.
   and summarised exactly as if you had pressed Stop
 - Paused time does not count toward the limit, so the cutoff matches the
   elapsed timer shown during the meeting
+- Time spent in system sleep does not count either
 - To change the cap, edit `MAX_RECORDING_DURATION_MS` in
   `src/shared/constants/recording.ts` and rebuild
 
@@ -331,7 +352,7 @@ Grant these in **System Preferences > Privacy & Security**.
 
 **Development issues:**
 - Rebuild native modules: `npm run rebuild`
-- Check Node.js version (requires 18+)
+- Check Node.js version (requires 22.12+)
 - Review logs: `~/Library/Application Support/call-md/logs/`
 
 ## Data Storage
@@ -339,23 +360,39 @@ Grant these in **System Preferences > Privacy & Security**.
 Application data is stored in:
 ```
 ~/Library/Application Support/call-md/
-├── config.json             # Settings; credentials encrypted at rest
+├── config.json             # Settings and encrypted desktop access token
 ├── data/
-│   └── call-md.db          # SQLite database
+│   └── call-md.db          # SQLite database; sole encrypted API-key authority
+├── google_tokens.enc       # Encrypted Google OAuth tokens, when connected
 └── logs/
     └── app-YYYY-MM-DD.log  # Daily log files
 ```
 
+Windows stores the equivalent files under the Electron application-data
+directory for the current user.
+
 ## Security
 
-Everything below stays on your machine; only audio, video and prompts go to
-VideoDB.
+The application database, settings, and logs stay on your machine. Recording,
+transcription, and AI inputs are sent to VideoDB when those features are used.
+If you enable Google Calendar, remote MCP servers, or workflow webhooks, the
+relevant data is also sent to the services you configure.
 
-- **Credentials at rest** — the VideoDB API key in `config.json` and in the
-  SQLite `users` table is encrypted through the OS keychain (Keychain on macOS,
-  DPAPI on Windows, libsecret on Linux). Access tokens are stored as SHA-256
-  digests, never in the clear. MCP server env vars, HTTP headers and OAuth
-  tokens are encrypted with AES-256-GCM under a keychain-wrapped key.
+- **Credentials at rest** — the encrypted SQLite user row is the sole authority
+  for the VideoDB API key; it is no longer duplicated in `config.json`. The
+  desktop access token in the config is encrypted, while the database stores
+  only its SHA-256 digest. Google OAuth tokens use Electron
+  [`safeStorage`](https://www.electronjs.org/docs/latest/api/safe-storage). MCP
+  server environment variables and HTTP headers use AES-256-GCM under a
+  keychain-wrapped key. Storage uses Keychain on macOS, DPAPI on Windows, and a
+  strong libsecret backend on Linux; credential writes fail closed when strong
+  OS-backed storage is unavailable or Linux selects the insecure `basic_text`
+  backend.
+- **Account changes** — a replacement VideoDB API key is verified before the
+  single database update and cannot be changed during an active meeting.
+  Logging out is completed in the main process: capture and calendar activity
+  stop, the local access token is invalidated, Google tokens are cleared, and
+  the renderer changes state only after persistence succeeds.
 - **Local API** — the tRPC server binds to `127.0.0.1` only and accepts CORS
   requests from loopback origins, so nothing on your network can reach it.
   Every procedure except registration requires a valid access token.
@@ -363,16 +400,20 @@ VideoDB.
   config, tokens and logs are `0600`.
 - **Renderer** — both windows run with `contextIsolation`, no Node integration,
   and the Chromium sandbox enabled. The API key is never written to
-  localStorage.
+  localStorage. These controls follow Electron's
+  [security checklist](https://www.electronjs.org/docs/latest/tutorial/security).
 - **Webhooks** — workflow URLs are validated at save time *and* at call time.
   Non-HTTP(S) schemes, embedded credentials, redirects, and hosts that resolve
-  to loopback, private, link-local or cloud-metadata addresses are rejected, so
-  a webhook cannot be used to reach inside your network.
+  to loopback, private, link-local, special-use, or cloud-metadata addresses are
+  rejected. IPv4-mapped IPv6 addresses are classified by their embedded IPv4
+  destination. Delivery is pinned to the addresses approved by that DNS lookup,
+  preventing DNS rebinding between validation and connection, and requests time
+  out if the response does not finish within 30 seconds.
 - **Logs** — credential-shaped fields are redacted before anything is written.
 
 Upgrades migrate existing data in place on first launch; you do not need to log
-in again. Report security issues via
-[GitHub Issues](https://github.com/video-db/call.md/issues).
+in again. Report security vulnerabilities privately to
+[support@videodb.io](mailto:support@videodb.io), not through a public issue.
 
 ## Community & Support
 
@@ -388,9 +429,9 @@ in again. Report security issues via
 ---
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[electron-shield]: https://img.shields.io/badge/Electron-34-47848F?style=for-the-badge&logo=electron&logoColor=white
+[electron-shield]: https://img.shields.io/badge/Electron-42-47848F?style=for-the-badge&logo=electron&logoColor=white
 [electron-url]: https://www.electronjs.org/
-[node-shield]: https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white
+[node-shield]: https://img.shields.io/badge/Node.js-22.12+-339933?style=for-the-badge&logo=node.js&logoColor=white
 [node-url]: https://nodejs.org/
 [react-shield]: https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black
 [react-url]: https://reactjs.org/

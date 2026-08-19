@@ -12,16 +12,18 @@ import {
   EyeOff,
   Copy,
   Pencil,
-  LogOut,
   Check,
   Loader2,
   AlertCircle,
 } from 'lucide-react';
 import { useConfigStore } from '../../stores/config.store';
+import { useCopilotStore } from '../../stores/copilot.store';
 import { MCPServersPanel } from './MCPServersPanel';
 import { NotificationsPanel } from './NotificationsPanel';
 import { TranscriptionPanel } from './TranscriptionPanel';
 import { WorkflowsPanel } from './WorkflowsPanel';
+import { getElectronAPI } from '../../api/ipc';
+import { logoutAndClearLocalAuth } from '../../lib/logout';
 
 type SettingsTab = 'account' | 'notifications' | 'transcription' | 'mcpServers' | 'workflows';
 
@@ -159,6 +161,7 @@ function AccountPanel() {
   const [newApiKey, setNewApiKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   // Calendar state
   const [calendarStatus, setCalendarStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
@@ -235,20 +238,21 @@ function AccountPanel() {
   const handleSaveApiKey = async () => {
     if (!newApiKey.trim()) return;
     setIsSaving(true);
+    setAccountError(null);
     try {
       const apiKey = newApiKey.trim();
-      // Persist through the main process - the renderer no longer keeps the
-      // key in localStorage.
-      const result = await window.electronAPI.app.saveSettings({ apiKey });
+      const result = await window.electronAPI.app.changeApiKey(apiKey);
       if (!result.success) {
         throw new Error(result.error || 'Failed to save API key');
       }
 
       configStore.setConfig({ apiKey });
+      useCopilotStore.getState().reset();
       setIsEditingApiKey(false);
       setNewApiKey('');
     } catch (err) {
       console.error('Failed to save API key:', err);
+      setAccountError(err instanceof Error ? err.message : 'Failed to save API key');
     } finally {
       setIsSaving(false);
     }
@@ -259,8 +263,19 @@ function AccountPanel() {
     setNewApiKey('');
   };
 
-  const handleLogout = () => {
-    configStore.clearAuth();
+  const handleLogout = async () => {
+    setAccountError(null);
+    try {
+      // The main process owns the encrypted credentials. Clear it first so a
+      // reload or full restart cannot silently rehydrate the logged-out user.
+      await logoutAndClearLocalAuth(getElectronAPI()?.app ?? null, () => {
+        configStore.clearAuth();
+        useCopilotStore.getState().reset();
+      });
+    } catch (error) {
+      console.error('Failed to log out:', error);
+      setAccountError(error instanceof Error ? error.message : 'Failed to log out');
+    }
   };
 
   return (
@@ -281,10 +296,13 @@ function AccountPanel() {
           {isEditingApiKey ? (
             <>
               <input
-                type="text"
+                type="password"
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.target.value)}
                 placeholder="Paste new API key"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="New API key"
                 className="w-[200px] px-[12px] py-[6px] bg-[#f7f7f7] border border-[#e9e9e9] rounded-[8px] text-[13px] text-[#141420] placeholder:text-[#969696] outline-none focus:border-[#ec5b16]"
               />
               <button
@@ -341,6 +359,13 @@ function AccountPanel() {
           )}
         </CardRow>
       </SettingsCard>
+
+      {accountError && (
+        <div role="alert" className="flex items-center gap-[8px] text-[13px] text-[#9f1d27]">
+          <AlertCircle className="w-[16px] h-[16px]" />
+          <span>{accountError}. Please retry.</span>
+        </div>
+      )}
 
       {/* Calendar Connection Card */}
       <SettingsCard>

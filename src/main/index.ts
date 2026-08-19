@@ -297,12 +297,11 @@ async function recoverPendingSessions(): Promise<void> {
   const appConfig = loadAppConfig();
   const runtimeConfig = loadRuntimeConfig();
 
-  // Try to get API key and collection ID from app config first
-  let apiKey = appConfig.apiKey;
+  // The database user row is the sole API-key authority.
+  let apiKey: string | undefined;
   let collectionId: string | undefined;
 
-  // If not in config, look up the user in the database using the access token
-  if (!apiKey && appConfig.accessToken) {
+  if (appConfig.accessToken) {
     const user = getUserByAccessToken(appConfig.accessToken);
     if (user) {
       apiKey = user.apiKey;

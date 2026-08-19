@@ -49,6 +49,8 @@ export function removeIpcHandlers(): void {
 
   // App handlers
   ipcMain.removeHandler('get-settings');
+  ipcMain.removeHandler('save-settings');
+  ipcMain.removeHandler('change-api-key');
   ipcMain.removeHandler('get-server-port');
   ipcMain.removeHandler('logout');
   ipcMain.removeHandler('open-external-link');
@@ -80,7 +82,14 @@ export function removeIpcHandlers(): void {
   logger.info('IPC handlers removed');
 }
 
-export { sendToRenderer, getMainWindow, setMainWindow, shutdownCaptureClient, isCaptureActive } from './capture';
+export {
+  sendToRenderer,
+  getMainWindow,
+  setMainWindow,
+  shutdownCaptureClient,
+  isCaptureActive,
+  isRecordingActive,
+} from './capture';
 export { setCopilotMainWindow } from './copilot';
 export { setMCPMainWindow } from './mcp';
 export { setCalendarMainWindow } from './calendar';
