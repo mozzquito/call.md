@@ -239,12 +239,14 @@ export interface IpcApi {
       apiKey?: string;
       apiUrl?: string;
       transcriptionLanguage?: string;
+      translationEnabled?: boolean;
     }>;
     saveSettings: (settings: {
       accessToken?: string;
       userName?: string;
       apiKey?: string;
       transcriptionLanguage?: string;
+      translationEnabled?: boolean;
     }) => Promise<{ success: boolean; error?: string }>;
     changeApiKey: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
     getServerPort: () => Promise<number>;
@@ -264,6 +266,14 @@ export interface IpcApi {
       rtstreamId?: string;
       rtstreamName?: string;
     }) => Promise<{ success: boolean; id?: string; error?: string }>;
+  };
+  translation: {
+    translateSegment: (params: {
+      recordingId: number;
+      sessionId: string;
+      channel: 'me' | 'them';
+      text: string;
+    }) => Promise<{ success: boolean; translatedText?: string; error?: string }>;
   };
   on: {
     recorderEvent: (callback: (event: RecorderEvent) => void) => () => void;

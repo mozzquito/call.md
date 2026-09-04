@@ -73,6 +73,10 @@ function TranscriptMessage({ item }: TranscriptMessageProps) {
       </div>
       {/* Text content */}
       <p className="text-[14px] text-black leading-[22px]">{item.text}</p>
+      {/* Thai translation (opt-in, Settings -> Transcription) */}
+      {item.translatedText ? (
+        <p className="text-[13px] text-[#6b7280] leading-[20px]">{item.translatedText}</p>
+      ) : null}
     </div>
   );
 }

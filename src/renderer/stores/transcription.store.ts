@@ -6,6 +6,7 @@ export interface TranscriptItem {
   source: 'mic' | 'system_audio';
   isFinal: boolean;
   timestamp: number;
+  translatedText?: string;
 }
 
 interface TranscriptionState {
@@ -17,7 +18,9 @@ interface TranscriptionState {
   // Actions
   addItem: (item: Omit<TranscriptItem, 'id' | 'timestamp'>) => void;
   updatePending: (source: 'mic' | 'system_audio', text: string) => void;
-  finalizePending: (source: 'mic' | 'system_audio', text: string) => void;
+  /** Returns the created item so callers can key async follow-ups (e.g. translation) to it. */
+  finalizePending: (source: 'mic' | 'system_audio', text: string) => TranscriptItem;
+  setTranslation: (id: string, translatedText: string) => void;
   setEnabled: (enabled: boolean) => void;
   clear: () => void;
 }
@@ -62,6 +65,16 @@ export const useTranscriptionStore = create<TranscriptionState>((set) => ({
     set((state) => ({
       items: [...state.items, newItem],
       ...(source === 'mic' ? { pendingMic: '' } : { pendingSystemAudio: '' }),
+    }));
+
+    return newItem;
+  },
+
+  setTranslation: (id, translatedText) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === id ? { ...item, translatedText } : item
+      ),
     }));
   },
 

@@ -386,6 +386,7 @@ const api: IpcApi = {
       userName?: string;
       apiKey?: string;
       transcriptionLanguage?: string;
+      translationEnabled?: boolean;
     }) => ipcRenderer.invoke('save-settings', settings),
     changeApiKey: (apiKey: string) => ipcRenderer.invoke('change-api-key', apiKey),
     getServerPort: () => ipcRenderer.invoke('get-server-port'),
@@ -395,6 +396,15 @@ const api: IpcApi = {
       ipcRenderer.invoke('show-notification', title, body),
     openPlayerWindow: (url: string) => ipcRenderer.invoke('open-player-window', url),
     openCallMdFolder: (path: string) => ipcRenderer.invoke('open-call-md-folder', path),
+  },
+
+  translation: {
+    translateSegment: (params: {
+      recordingId: number;
+      sessionId: string;
+      channel: 'me' | 'them';
+      text: string;
+    }) => ipcRenderer.invoke('translation:translate-segment', params),
   },
 
   on: {

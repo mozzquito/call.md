@@ -3,6 +3,7 @@ import { useSessionStore } from '../stores/session.store';
 import { useTranscriptionStore } from '../stores/transcription.store';
 import { useVisualIndexStore } from '../stores/visual-index.store';
 import { useCopilotStore } from '../stores/copilot.store';
+import { useConfigStore } from '../stores/config.store';
 import { getElectronAPI } from '../api/ipc';
 import { formatDurationLabel } from '../../shared/constants/recording';
 import type {
@@ -109,8 +110,9 @@ export function useGlobalRecorderEvents(options: GlobalRecorderEventOptions = {}
         case 'transcript':
           if (event.data && transcription.enabled) {
             const transcript = event.data as TranscriptEvent;
+            let finalizedItem: ReturnType<typeof transcription.finalizePending> | null = null;
             if (transcript.isFinal) {
-              transcription.finalizePending(transcript.source, transcript.text);
+              finalizedItem = transcription.finalizePending(transcript.source, transcript.text);
             } else {
               transcription.updatePending(transcript.source, transcript.text);
             }
@@ -118,9 +120,10 @@ export function useGlobalRecorderEvents(options: GlobalRecorderEventOptions = {}
             // Forward transcript to copilot backend (for final segments only)
             const currentApi = getElectronAPI();
             if (transcript.isFinal && currentApi) {
+              const channel: 'me' | 'them' = transcript.source === 'mic' ? 'me' : 'them';
+
               // Forward to copilot if active
               if (useCopilotStore.getState().isCallActive) {
-                const channel: 'me' | 'them' = transcript.source === 'mic' ? 'me' : 'them';
                 currentApi.copilot.sendTranscript(channel, {
                   text: transcript.text,
                   is_final: true,
@@ -135,6 +138,30 @@ export function useGlobalRecorderEvents(options: GlobalRecorderEventOptions = {}
               currentApi.liveAssist.addTranscript(transcript.text, transcript.source).catch((err: Error) => {
                 console.warn('[GlobalRecorderEvents] Error forwarding transcript to live assist:', err);
               });
+
+              // Live Thai translation overlay (opt-in, see Settings -> Transcription)
+              if (finalizedItem && useConfigStore.getState().translationEnabled) {
+                const { recordingId, sessionId } = useSessionStore.getState();
+                if (recordingId && sessionId) {
+                  const itemId = finalizedItem.id;
+                  currentApi.translation
+                    .translateSegment({ recordingId, sessionId, channel, text: transcript.text })
+                    .then((result) => {
+                      // The meeting may have already ended by the time this
+                      // resolves (translation calls can lag behind a fast
+                      // recording-stop). Applying it to a new session's store
+                      // would misattribute a stale translation to the wrong
+                      // transcript item.
+                      if (useSessionStore.getState().sessionId !== sessionId) return;
+                      if (result.success && result.translatedText) {
+                        transcription.setTranslation(itemId, result.translatedText);
+                      }
+                    })
+                    .catch((err: Error) => {
+                      console.warn('[GlobalRecorderEvents] Error translating segment:', err);
+                    });
+                }
+              }
             }
           }
           break;

@@ -8,6 +8,7 @@ interface ConfigState {
   apiKey: string | null;
   apiUrl: string | null;
   transcriptionLanguage: string;
+  translationEnabled: boolean;
   onboardingComplete: boolean;
 
   setAuth: (accessToken: string, userName: string, apiKey: string) => void;
@@ -26,6 +27,7 @@ export const useConfigStore = create<ConfigState>()(
       apiKey: null,
       apiUrl: null,
       transcriptionLanguage: AUTO_LANGUAGE,
+      translationEnabled: false,
       onboardingComplete: false,
 
       setAuth: (accessToken, userName, apiKey) => {
@@ -56,6 +58,7 @@ export const useConfigStore = create<ConfigState>()(
             accessToken: settings.accessToken ?? null,
             onboardingComplete: Boolean(settings.accessToken) && state.onboardingComplete,
             transcriptionLanguage: settings.transcriptionLanguage || AUTO_LANGUAGE,
+            translationEnabled: settings.translationEnabled ?? false,
           }));
         } catch {
           // Settings are optional; the app still works without them.

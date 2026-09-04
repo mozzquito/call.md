@@ -62,6 +62,7 @@ export const transcriptSegments = sqliteTable('transcript_segments', {
   processedByAgent: integer('processed_by_agent', { mode: 'boolean' }).notNull().default(false),
   sentiment: text('sentiment', { enum: ['positive', 'neutral', 'negative'] }),
   triggers: text('triggers'), // JSON array: ['objection:pricing', 'playbook:pain']
+  translatedText: text('translated_text'), // Thai translation, filled in async after the segment finalizes
   createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
 }, (table) => ({
   sessionIdx: index('idx_transcript_segments_session').on(table.sessionId),

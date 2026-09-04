@@ -100,6 +100,7 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
       processed_by_agent INTEGER NOT NULL DEFAULT 0,
       sentiment TEXT CHECK(sentiment IN ('positive', 'neutral', 'negative')),
       triggers TEXT,
+      translated_text TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -293,6 +294,7 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
   `);
 
   ensureRecordingColumns();
+  ensureTranscriptSegmentColumns();
   ensureNudgesHistorySchema();
   ensureMCPServerColumns();
   ensureUserColumns();
@@ -334,6 +336,20 @@ function ensureRecordingColumns(): void {
   addColumnIfMissing('collection_id', "ALTER TABLE recordings ADD COLUMN collection_id TEXT");
   addColumnIfMissing('post_meeting_checklist', "ALTER TABLE recordings ADD COLUMN post_meeting_checklist TEXT");
   addColumnIfMissing('post_meeting_checklist_completed', "ALTER TABLE recordings ADD COLUMN post_meeting_checklist_completed TEXT");
+}
+
+function ensureTranscriptSegmentColumns(): void {
+  if (!sqlite) return;
+
+  const columns = sqlite
+    .prepare("PRAGMA table_info('transcript_segments')")
+    .all()
+    .map((row: any) => row.name);
+
+  if (!columns.includes('translated_text')) {
+    sqlite.exec("ALTER TABLE transcript_segments ADD COLUMN translated_text TEXT");
+    logger.info({ column: 'translated_text' }, 'Added missing transcript_segments column');
+  }
 }
 
 function ensureNudgesHistorySchema(): void {
@@ -632,6 +648,36 @@ export function updateTranscriptSegment(id: string, data: Partial<schema.Transcr
     .where(eq(schema.transcriptSegments.id, id))
     .returning()
     .get();
+}
+
+/**
+ * Persists a live translation by matching on (recordingId, channel, text) rather
+ * than segment id - the renderer's live transcript pipeline doesn't have the
+ * backend-generated segment UUID (it's a separate raw-event path, see
+ * useGlobalRecorderEvents.ts).
+ *
+ * Known limitation: if the exact same utterance (e.g. "ครับ", "okay") recurs
+ * in one recording, ALL matching rows get overwritten with whichever
+ * translation ran last - even though each was translated with different
+ * prior-context and may legitimately differ. This is accepted as low-impact
+ * for a solo-use tool; revisit if it turns out to matter in practice.
+ */
+export function updateTranscriptSegmentTranslationByText(
+  recordingId: number,
+  channel: 'me' | 'them',
+  text: string,
+  translatedText: string
+) {
+  const database = getDatabase();
+  return database
+    .update(schema.transcriptSegments)
+    .set({ translatedText })
+    .where(and(
+      eq(schema.transcriptSegments.recordingId, recordingId),
+      eq(schema.transcriptSegments.channel, channel),
+      eq(schema.transcriptSegments.text, text)
+    ))
+    .run();
 }
 
 export function deleteTranscriptSegmentsBySession(sessionId: string) {

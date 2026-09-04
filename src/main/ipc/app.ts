@@ -20,6 +20,7 @@ export function setupAppHandlers(): void {
       apiKey?: string;
       apiUrl?: string;
       transcriptionLanguage: string;
+      translationEnabled: boolean;
     }> => {
       const appConfig = loadAppConfig();
       const runtimeConfig = loadRuntimeConfig();
@@ -33,6 +34,7 @@ export function setupAppHandlers(): void {
         apiKey: user?.apiKey,
         apiUrl: runtimeConfig.apiUrl,
         transcriptionLanguage: appConfig.transcriptionLanguage || AUTO_LANGUAGE,
+        translationEnabled: appConfig.translationEnabled ?? false,
       };
     }
   );

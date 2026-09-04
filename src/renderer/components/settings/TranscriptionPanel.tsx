@@ -12,14 +12,19 @@ import {
   TRANSCRIPTION_LANGUAGES,
 } from '../../../shared/constants/languages';
 import { useConfigStore } from '../../stores/config.store';
+import { Switch } from '../ui/switch';
 
 export function TranscriptionPanel() {
   const transcriptionLanguage = useConfigStore((state) => state.transcriptionLanguage);
+  const translationEnabled = useConfigStore((state) => state.translationEnabled);
   const setConfig = useConfigStore((state) => state.setConfig);
 
   const [isSaving, setIsSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [isSavingTranslation, setIsSavingTranslation] = useState(false);
+  const [translationError, setTranslationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (savedAt === null) return;
@@ -47,6 +52,24 @@ export function TranscriptionPanel() {
       setError(err instanceof Error ? err.message : 'Failed to save language');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleTranslation = async (enabled: boolean) => {
+    setConfig({ translationEnabled: enabled });
+    setIsSavingTranslation(true);
+    setTranslationError(null);
+
+    try {
+      const result = await window.electronAPI.app.saveSettings({ translationEnabled: enabled });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save translation setting');
+      }
+    } catch (err) {
+      setConfig({ translationEnabled: !enabled });
+      setTranslationError(err instanceof Error ? err.message : 'Failed to save translation setting');
+    } finally {
+      setIsSavingTranslation(false);
     }
   };
 
@@ -114,6 +137,42 @@ export function TranscriptionPanel() {
           Language support depends on the VideoDB transcription backend. If the selected language
           is unavailable, transcription falls back to the engine default instead of failing.
         </p>
+      )}
+
+      <div className="bg-white border border-[#e4e4ec] rounded-[14px] overflow-hidden">
+        <div className="flex items-center justify-between px-[20px] py-[16px]">
+          <div>
+            <h3 className="text-[16px] font-semibold text-[#141420] leading-[22.5px]">
+              Live Thai Translation
+              <span className="ml-[8px] text-[11px] font-medium text-[#969696] align-middle">
+                Beta
+              </span>
+            </h3>
+            <p className="text-[13px] text-[#969696] mt-[2px] max-w-[420px]">
+              Shows a Thai translation under each transcript line as the meeting happens.
+              Real-time Thai transcription itself isn't supported yet by the transcription
+              backend - this translates the English (or other) transcript instead, a few
+              seconds behind live.
+            </p>
+          </div>
+          <div className="flex items-center gap-[8px] shrink-0">
+            {isSavingTranslation && (
+              <Loader2 className="w-[16px] h-[16px] text-[#ec5b16] animate-spin" />
+            )}
+            <Switch
+              checked={translationEnabled}
+              onCheckedChange={handleToggleTranslation}
+              disabled={isSavingTranslation}
+            />
+          </div>
+        </div>
+      </div>
+
+      {translationError && (
+        <div className="flex items-start gap-[8px] p-[12px] bg-[rgba(209,36,47,0.06)] border border-[rgba(209,36,47,0.19)] rounded-[10px]">
+          <AlertCircle className="w-[16px] h-[16px] text-[#d1242f] shrink-0 mt-[1px]" />
+          <span className="text-[13px] text-[#d1242f]">{translationError}</span>
+        </div>
       )}
     </div>
   );
