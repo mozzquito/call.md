@@ -309,6 +309,27 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
     );
   `);
 
+  // Separate statement (not merged into the block above) so a missing FTS5
+  // module in some future SQLite build fails loudly here rather than
+  // aborting the entire multi-statement exec above it.
+  try {
+    sqlite.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS recordings_fts USING fts5(
+        recordingId UNINDEXED,
+        meetingName,
+        shortOverview,
+        shortOverviewTh,
+        keyPointsText,
+        checklistText,
+        transcriptText,
+        insights,
+        tokenize='trigram'
+      );
+    `);
+  } catch (error) {
+    logger.error({ error }, 'Failed to create recordings_fts table - search will be unavailable');
+  }
+
   ensureRecordingColumns();
   ensureTranscriptSegmentColumns();
   ensureNudgesHistorySchema();
@@ -321,6 +342,8 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
   seedDefaultPlaybooks();
 
   seedDefaultSettings();
+
+  backfillSearchIndex();
 
   logger.info('Database initialized successfully');
   return db;
@@ -1973,6 +1996,181 @@ export function getSecondOpinionSummariesByRecording(recordingId: number) {
     // two rows from a fast regenerate can tie and make "last wins" ambiguous.
     .orderBy(schema.secondOpinionSummaries.id)
     .all();
+}
+
+// Full-Text Search (Feature 5)
+//
+// recordings_fts is a raw FTS5 virtual table (not part of the Drizzle
+// schema - Drizzle has no first-class FTS5 support), tokenized with
+// 'trigram' rather than the default unicode61 tokenizer specifically
+// because most of this fork's actual content is Thai (see Features 1/2/4),
+// and Thai text has no spaces between words - a word-tokenizer would index
+// an entire Thai paragraph as one unsearchable token. Trigram indexes every
+// 3-character window instead, giving substring search that works
+// identically for English, Thai, or mixed text with no word-segmentation
+// step needed.
+
+function flattenKeyPointsJson(json: string | null | undefined): string {
+  if (!json) return '';
+  try {
+    const points = JSON.parse(json) as { topic: string; points: string[] }[];
+    return points.map((kp) => `${kp.topic} ${kp.points.join(' ')}`).join(' ');
+  } catch {
+    return '';
+  }
+}
+
+function flattenStringArrayJson(json: string | null | undefined): string {
+  if (!json) return '';
+  try {
+    const arr = JSON.parse(json) as string[];
+    return arr.join(' ');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * (Re)indexes one recording for search - deletes any existing row for it
+ * first, so this is safe to call multiple times (e.g. summary generated,
+ * then translated). Never throws - a failure here should not be able to
+ * break the summary-save flow that calls it; search just stays stale for
+ * this recording until the next successful call. The delete+insert is one
+ * transaction: not required for correctness (a crash between the two just
+ * means the backfill retries this recording next startup, since it won't
+ * be in `recordings_fts` either way), but it's a one-line change that also
+ * batches backfill's writes into far fewer fsyncs.
+ */
+export function indexRecordingForSearch(recordingId: number): void {
+  if (!sqlite) return;
+
+  try {
+    const recording = getRecordingById(recordingId) as any;
+    if (!recording) return;
+
+    const segments = getTranscriptSegmentsByRecording(recordingId);
+    const transcriptText = segments.map((s) => s.text).join(' ');
+
+    const keyPointsText = [
+      flattenKeyPointsJson(recording.keyPoints),
+      flattenKeyPointsJson(recording.keyPointsTh),
+    ].join(' ');
+    const checklistText = [
+      flattenStringArrayJson(recording.postMeetingChecklist),
+      flattenStringArrayJson(recording.postMeetingChecklistTh),
+    ].join(' ');
+
+    const reindex = sqlite.transaction(() => {
+      sqlite!.prepare('DELETE FROM recordings_fts WHERE recordingId = ?').run(recordingId);
+      sqlite!
+        .prepare(
+          `INSERT INTO recordings_fts
+           (recordingId, meetingName, shortOverview, shortOverviewTh, keyPointsText, checklistText, transcriptText, insights)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          recordingId,
+          recording.meetingName || '',
+          recording.shortOverview || '',
+          recording.shortOverviewTh || '',
+          keyPointsText,
+          checklistText,
+          transcriptText,
+          // Legacy field from a pre-Meeting-Co-Pilot version of the app
+          // (InsightsService, now dead code / never invoked) - some older
+          // recordings still carry it and RecordingCard still falls back
+          // to displaying it, so it stays searchable too.
+          recording.insights || ''
+        );
+    });
+    reindex();
+  } catch (error) {
+    logger.error({ error, recordingId }, 'Failed to index recording for search');
+  }
+}
+
+/**
+ * Indexes any recording that predates this feature (or was never indexed
+ * for some other reason) once, at startup. Cheap for a personal-scale
+ * history; skips anything already indexed.
+ */
+function backfillSearchIndex(): void {
+  if (!sqlite) return;
+
+  try {
+    const alreadyIndexed = new Set(
+      (sqlite.prepare('SELECT recordingId FROM recordings_fts').all() as { recordingId: number }[]).map(
+        (r) => r.recordingId
+      )
+    );
+
+    const all = getAllRecordings();
+    let count = 0;
+    for (const recording of all) {
+      if (!alreadyIndexed.has(recording.id)) {
+        indexRecordingForSearch(recording.id);
+        count++;
+      }
+    }
+    if (count > 0) {
+      logger.info({ count }, 'Backfilled search index for existing recordings');
+    }
+  } catch (error) {
+    logger.error({ error }, 'Failed to backfill search index');
+  }
+}
+
+/**
+ * Builds a safe FTS5 MATCH query from raw user input: each whitespace-
+ * separated word becomes its own quoted phrase (so trigram substring
+ * matching applies per word, and FTS5 operator syntax like AND/OR/NOT/
+ * column-filter ':' embedded in user input can't be interpreted as
+ * operators), ANDed together so a multi-word search requires every word to
+ * appear somewhere in the document, in any order. A continuous string with
+ * no spaces (typical for a Thai phrase typed without word breaks) becomes
+ * one phrase and is substring-matched as-is - no word segmentation needed.
+ *
+ * Words under 3 characters are dropped entirely, not just left to match
+ * nothing: trigram indexes 3-character windows, so a 1-2 character phrase
+ * can never match ANY text - and ANDing an unmatchable phrase into the
+ * query zeros out the whole search even when the other word(s) genuinely
+ * match. Verified: with "AI" in the indexed text, `"launching" AND "AI"`
+ * returns zero rows even though `"launching"` alone matches - dropping the
+ * short word instead makes `launching AI` search for just "launching".
+ *
+ * Returns null if nothing searchable remains (empty input, or every word
+ * was too short) - FTS5's MATCH rejects an empty string with a syntax
+ * error, so the caller must treat null as "don't filter" rather than
+ * passing it through.
+ */
+function buildFtsQuery(raw: string): string | null {
+  const words = raw.trim().split(/\s+/).filter((w) => w.length >= 3);
+  if (words.length === 0) return null;
+  return words.map((w) => `"${w.replace(/"/g, '""')}"`).join(' AND ');
+}
+
+/**
+ * Returns recordingIds matching the search query. Returns an empty array
+ * (not an error) for a too-short/empty query - trigram can't meaningfully
+ * match under 3 characters, and an empty query has no words to search for.
+ * Not ordered by FTS5's rank: the renderer re-sorts matches by recording
+ * date, so computing a relevance rank here would be wasted work.
+ */
+export function searchRecordings(query: string): number[] {
+  if (!sqlite) return [];
+
+  const ftsQuery = buildFtsQuery(query);
+  if (!ftsQuery) return [];
+
+  try {
+    const rows = sqlite
+      .prepare('SELECT recordingId FROM recordings_fts WHERE recordings_fts MATCH ?')
+      .all(ftsQuery) as { recordingId: number }[];
+    return rows.map((r) => r.recordingId);
+  } catch (error) {
+    logger.error({ error, query }, 'Search query failed');
+    return [];
+  }
 }
 
 export { schema };

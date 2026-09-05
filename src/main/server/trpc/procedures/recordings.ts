@@ -19,6 +19,7 @@ import {
   updateRecordingBySessionId,
   getRecordingById,
   getTranscriptSegmentsByRecording,
+  searchRecordings,
 } from '../../../db';
 import { createChildLogger } from '../../../lib/logger';
 import { loadRuntimeConfig } from '../../../lib/config';
@@ -150,6 +151,17 @@ export const recordingsRouter = router({
         startTime: s.startTime,
         endTime: s.endTime,
       }));
+    }),
+
+  // Feature 5: full-text search over meeting name, summary (English + Thai),
+  // key points, action items, and the full transcript - not just the title/
+  // overview substring match the History view used to do client-side.
+  search: protectedProcedure
+    .input(z.object({ query: z.string() }))
+    .output(z.array(z.number()))
+    .query(async ({ input }) => {
+      logger.debug({ query: input.query }, 'Searching recordings');
+      return searchRecordings(input.query);
     }),
 
   start: protectedProcedure

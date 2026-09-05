@@ -15,6 +15,7 @@ import {
   createCallMetricsSnapshot,
   createNudge,
   getTranscriptSegmentsByRecording,
+  indexRecordingForSearch,
 } from '../../db';
 
 import {
@@ -461,6 +462,11 @@ export class MeetingCopilotService extends EventEmitter {
       const errMsg = error instanceof Error ? error.message : 'Unknown error';
       log.error({ err: error, errorMessage: errMsg, recordingId }, 'Failed to save call data');
     }
+
+    // Feature 5: index the recording for search. Reads back from the DB
+    // (whatever was actually persisted above, even if that save partially
+    // failed) rather than trusting in-memory values, and never throws.
+    indexRecordingForSearch(recordingId);
 
     this.exportToMarkdown(recordingId, summary, metrics, duration, segments, meetingContext).catch((err) => {
       log.error({ err }, 'Failed to export meeting to markdown');

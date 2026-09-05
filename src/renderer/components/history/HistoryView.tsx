@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { RefreshCw, Inbox, Search, Upload, AlertCircle } from 'lucide-react';
 import { RecordingCard } from './RecordingCard';
 import { RecordingDetailPage } from './RecordingDetailPage';
@@ -22,8 +23,14 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
   }, [initialSelectedRecordingId, onClearInitialSelection]);
   const [hasCleanedUp, setHasCleanedUp] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const activeSessionId = useSessionStore((state) => state.sessionId);
 
@@ -61,29 +68,33 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
     }
   }, [recordings, hasCleanedUp, activeSessionId]);
 
-  // Sort recordings by date (newest first) and filter by search query
+  // Server-side full-text search (meeting name, summary in both languages,
+  // key points, action items, and the full transcript) once the query is
+  // long enough for trigram matching to be meaningful. Below that length,
+  // or before the debounce settles, the unfiltered list is shown rather
+  // than an empty/stale result. `placeholderData: keepPreviousData` keeps
+  // showing the previous search's matches while a new query is in flight,
+  // rather than momentarily falling back to the full unfiltered list (the
+  // query key changes with every keystroke-after-debounce, so without this
+  // react-query treats each new query as having no data yet).
+  const { data: searchResultIds, isFetching: isSearching } = trpc.recordings.search.useQuery(
+    { query: debouncedQuery },
+    { enabled: debouncedQuery.length >= 3, placeholderData: keepPreviousData }
+  );
+
+  // Sort recordings by date (newest first) and filter by search results
   const filteredRecordings = useMemo(() => {
     const sorted = [...(recordings || [])].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    if (!searchQuery.trim()) {
+    if (debouncedQuery.length < 3 || !searchResultIds) {
       return sorted;
     }
 
-    const query = searchQuery.toLowerCase();
-    return sorted.filter((recording) => {
-      // Search in meeting name
-      if (recording.meetingName?.toLowerCase().includes(query)) {
-        return true;
-      }
-      // Search in short overview
-      if (recording.shortOverview?.toLowerCase().includes(query)) {
-        return true;
-      }
-      return false;
-    });
-  }, [recordings, searchQuery]);
+    const matchingIds = new Set(searchResultIds);
+    return sorted.filter((r) => matchingIds.has(r.id));
+  }, [recordings, debouncedQuery, searchResultIds]);
 
   const handleImport = async () => {
     setImportError(null);
@@ -133,10 +144,14 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
       {/* Search Bar + Import */}
       <div className="px-8 pb-6 flex items-center justify-between gap-4">
         <div className="relative max-w-md flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-[#969696]" />
+          {isSearching && debouncedQuery.length >= 3 ? (
+            <RefreshCw className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-[#969696] animate-spin" />
+          ) : (
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-[#969696]" />
+          )}
           <input
             type="text"
-            placeholder="Search recordings..."
+            placeholder="Search recordings, transcripts, summaries..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#e0e0e0] bg-[#fafafa] text-[14px] text-black placeholder:text-[#969696] focus:outline-none focus:border-[#c0c0c0] focus:bg-white transition-colors"
@@ -172,7 +187,7 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
         ) : filteredRecordings.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-[#6b6b6b]">
             <Inbox className="h-12 w-12 mb-3 text-[#c0c0c0]" />
-            {searchQuery ? (
+            {debouncedQuery.length >= 3 ? (
               <>
                 <p className="text-[15px] font-medium">No matching recordings</p>
                 <p className="text-[13px] text-[#969696] mt-1">Try a different search term</p>

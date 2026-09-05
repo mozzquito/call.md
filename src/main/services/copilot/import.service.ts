@@ -20,7 +20,7 @@ import { createVideoDBService } from '../videodb.service';
 import { getSummaryGenerator } from './summary-generator.service';
 import { maybeTranslateSummaryToThai } from './summary-translation.service';
 import { loadAppConfig } from '../../lib/config';
-import { createTranscriptSegment, updateRecording } from '../../db';
+import { createTranscriptSegment, updateRecording, indexRecordingForSearch } from '../../db';
 import { v4 as uuid } from 'uuid';
 
 const logger = createChildLogger('import-service');
@@ -176,6 +176,11 @@ export async function processImportedRecording(
       logger.error({ recordingId, error: summaryError }, 'Summary generation failed for imported recording');
       updateRecording(recordingId, { insightsStatus: 'failed' });
     }
+
+    // Feature 5: index for search regardless of whether the summary above
+    // succeeded - the transcript segments were already persisted earlier
+    // and are searchable on their own even without a summary.
+    indexRecordingForSearch(recordingId);
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     logger.error({ recordingId, fileName, error: errMsg }, 'Import processing failed');

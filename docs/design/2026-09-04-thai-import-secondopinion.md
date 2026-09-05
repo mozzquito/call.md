@@ -1,9 +1,9 @@
 # Design: Thai Translation, Recording Import, Second-Opinion Summary
 
-**Status**: Features 1-3 implemented, live-tested, committed, and pushed to
-`mozzquito/call.md` (commits `3217122`, `d8c009d`, `a6c0cb8`) as of 2026-09-05. Feature 4
-(added after a follow-up round of feature suggestions) implemented same day, pending
-live test and commit.
+**Status**: Features 1-4 implemented, live-tested, committed, and pushed to
+`mozzquito/call.md` (commits `3217122`, `d8c009d`, `a6c0cb8`, `66ce19e`) as of 2026-09-05.
+Feature 5 (from the same follow-up feature-suggestion round as Feature 4) implemented
+same day, pending live test and commit.
 **Scope**: Personal fork (mozzquito/call.md), solo use, not intended for upstream PR.
 **Design reviewed by**: zcode (GLM) and agy (Gemini), 2026-09-04 (design stage) and
 2026-09-05 (diff stage, per feature).
@@ -300,3 +300,76 @@ Live-call-end now blocks on 3 additional parallel LLM calls before the recording
 processed, adding a few seconds to perceived "call ended" latency when the toggle is on.
 Accepted as proportionate - the primary summary generation already does the same thing
 (3 parallel LLM calls) for the English version.
+
+---
+
+## Feature 5: Full-Text Search Over Recording History — IMPLEMENTED 2026-09-05
+
+**Origin**: same "what's next" round as Feature 4 - Ayami, zcode, and agy all flagged that
+the History search box only matched `meetingName`/`shortOverview` substrings client-side,
+which would feel increasingly broken as the recording count grew from both live use and
+the new Import feature.
+
+**Goal**: search meeting name, summary (English + Thai), key points, action items, and the
+full transcript - not just the title/overview.
+
+### Architecture
+
+- A raw SQLite FTS5 virtual table `recordings_fts` (not part of the Drizzle schema - Drizzle
+  has no first-class FTS5 support), tokenized with **`trigram`, not the default `unicode61`
+  word-tokenizer** - the deciding factor for this whole design. Most of this fork's actual
+  content is Thai (Features 1/2/4), and Thai has no spaces between words; a word-tokenizer
+  would index an entire Thai paragraph as one unsearchable token. Trigram indexes every
+  3-character window instead, giving substring search that works identically for English,
+  Thai, or mixed text with no word-segmentation step. Verified directly (via Electron's own
+  bundled Node, since better-sqlite3's native binary is ABI-specific to Electron and
+  segfaults under plain system `node`) that trigram correctly substring-matches both
+  scripts, is case-insensitive, and fails safe (zero rows, not an error) on 1-2 character
+  queries - only a genuinely empty string throws.
+- Indexes `meetingName`, `shortOverview`/`shortOverviewTh`, flattened `keyPoints`/
+  `keyPointsTh` (topic + points joined), flattened `postMeetingChecklist`/
+  `postMeetingChecklistTh`, the full concatenated transcript, and `insights` - a legacy
+  field from a pre-Meeting-Co-Pilot version of the app (`InsightsService`, confirmed dead
+  code, never instantiated anywhere in the current codebase) that some older recordings
+  still carry and that `RecordingCard` still falls back to displaying.
+- **Populated by full delete+insert** (FTS5 has no native UPSERT), wrapped in one
+  `sqlite.transaction()`, whenever a summary is generated - both the live-call-end path
+  (`sales-copilot.service.ts`) and the import path (`import.service.ts`), reusing the same
+  hook points Feature 4 already added. The import path re-indexes even if summary
+  generation itself failed, since the transcript was already persisted and is searchable
+  on its own.
+- **One-time startup backfill** (`backfillSearchIndex`) indexes any recording that predates
+  this feature, comparing against what's already in `recordings_fts` and skipping the rest -
+  cheap at personal scale, and self-healing (a recording that fails to index one run is
+  simply not yet in the table, so the next startup retries it).
+- **`buildFtsQuery`**: each whitespace-separated word becomes its own quoted phrase (safe
+  against FTS5 operator injection - `AND`/`OR`/`NOT`/`:` embedded in user input lose all
+  operator meaning inside a quoted phrase), ANDed together so a multi-word search requires
+  every word to appear somewhere in the document, in any order. **Words under 3 characters
+  are dropped, not included** - both zcode and agy's diff-stage review independently caught
+  that a short word inside an ANDed query is worse than useless: trigram can never match
+  anything shorter than 3 characters, so ANDing an unmatchable phrase into the query zeroed
+  out the *entire* search even when the other word(s) genuinely matched. Verified concretely:
+  with "AI" present in indexed text, `"launching" AND "AI"` returned zero rows even though
+  `"launching"` alone matched; dropping "AI" instead makes `launching AI` correctly search
+  for just "launching".
+- Renderer (`HistoryView.tsx`): 300ms debounce, only queries at 3+ characters (below that,
+  trigram can't meaningfully match, so the unfiltered list shows instead).
+  `placeholderData: keepPreviousData` (react-query v5) keeps showing the previous search's
+  matches while a new query is in flight, rather than flashing to the full unfiltered list
+  on every keystroke - both reviewers caught this as a minor but real flicker in the first
+  draft.
+- Not ordered by FTS5's relevance `rank`: the renderer re-sorts matches by recording date for
+  a "history" browsing feel, so computing a rank would be wasted work - removed from the
+  query for that reason.
+
+### Known tradeoffs (accepted for v1)
+
+- No recording-delete path exists anywhere in this codebase currently (confirmed by search),
+  so there's nothing to wire an FTS cleanup into yet. If a delete feature is ever added, it
+  needs `DELETE FROM recordings_fts WHERE recordingId = ?` alongside it, or search will
+  surface ghost results for deleted recordings (harmless today only because the renderer
+  filters search matches against the live recordings list before rendering).
+- The FTS index isn't updated if a recording's searchable fields are edited by some future
+  path other than the two summary-generation call sites - there's no rename/edit feature
+  today, so this is speculative, not a known gap.
