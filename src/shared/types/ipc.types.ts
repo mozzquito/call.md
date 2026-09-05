@@ -283,6 +283,18 @@ export interface IpcApi {
       error?: string;
     }>;
   };
+  secondOpinion: {
+    generate: (params: { recordingId: number; provider: 'zcode' | 'agy' }) => Promise<{
+      success: boolean;
+      content?: string;
+      error?: string;
+    }>;
+    list: (params: { recordingId: number }) => Promise<{
+      success: boolean;
+      results?: Array<{ provider: string; content: string | null; status: string; error: string | null; generatedAt: string }>;
+      error?: string;
+    }>;
+  };
   on: {
     recorderEvent: (callback: (event: RecorderEvent) => void) => () => void;
     authRequired: (callback: () => void) => () => void;

@@ -222,6 +222,29 @@ export const copilotSettings = sqliteTable('copilot_settings', {
   updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
 });
 
+/**
+ * Second-Opinion Summaries (Feature 3)
+ * On-demand supplementary meeting summaries from zcode (GLM) and agy
+ * (Gemini/Sonnet), kept separate from the primary OpenAI-generated summary
+ * on `recordings` - these are explicitly supplementary, never primary.
+ */
+export const secondOpinionSummaries = sqliteTable('second_opinion_summaries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  recordingId: integer('recording_id').notNull(),
+  provider: text('provider', { enum: ['zcode', 'agy'] }).notNull(),
+  content: text('content'),
+  // No 'pending' state - a row is only ever inserted once a generation
+  // attempt has reached a terminal outcome (see second-opinion.service.ts).
+  status: text('status', { enum: ['ready', 'failed'] }).notNull(),
+  error: text('error'),
+  generatedAt: text('generated_at').notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  recordingIdx: index('idx_second_opinion_summaries_recording').on(table.recordingId),
+}));
+
+export type SecondOpinionSummary = typeof secondOpinionSummaries.$inferSelect;
+export type NewSecondOpinionSummary = typeof secondOpinionSummaries.$inferInsert;
+
 // Type Exports
 
 export type User = typeof users.$inferSelect;

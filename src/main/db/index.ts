@@ -198,6 +198,16 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS second_opinion_summaries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recording_id INTEGER NOT NULL,
+      provider TEXT NOT NULL CHECK(provider IN ('zcode', 'agy')),
+      content TEXT,
+      status TEXT NOT NULL CHECK(status IN ('ready', 'failed')),
+      error TEXT,
+      generated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- MCP Tables
     CREATE TABLE IF NOT EXISTS mcp_servers (
       id TEXT PRIMARY KEY,
@@ -272,6 +282,7 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
     CREATE INDEX IF NOT EXISTS idx_nudges_history_recording ON nudges_history(recording_id);
     CREATE INDEX IF NOT EXISTS idx_mcp_tool_calls_server ON mcp_tool_calls(server_id);
     CREATE INDEX IF NOT EXISTS idx_mcp_tool_calls_recording ON mcp_tool_calls(recording_id);
+    CREATE INDEX IF NOT EXISTS idx_second_opinion_summaries_recording ON second_opinion_summaries(recording_id);
     CREATE INDEX IF NOT EXISTS idx_visual_index_items_session ON visual_index_items(session_id);
     CREATE INDEX IF NOT EXISTS idx_visual_index_items_recording ON visual_index_items(recording_id);
 
@@ -1937,6 +1948,25 @@ export function updateWorkflow(id: string, data: Partial<schema.Workflow>) {
 export function deleteWorkflow(id: string) {
   const database = getDatabase();
   return database.delete(schema.workflows).where(eq(schema.workflows.id, id)).run();
+}
+
+// Second-Opinion Summaries (Feature 3)
+
+export function createSecondOpinionSummary(data: schema.NewSecondOpinionSummary) {
+  const database = getDatabase();
+  return database.insert(schema.secondOpinionSummaries).values(data).returning().get();
+}
+
+export function getSecondOpinionSummariesByRecording(recordingId: number) {
+  const database = getDatabase();
+  return database
+    .select()
+    .from(schema.secondOpinionSummaries)
+    .where(eq(schema.secondOpinionSummaries.recordingId, recordingId))
+    // Order by id, not generatedAt - the latter has 1-second resolution, so
+    // two rows from a fast regenerate can tie and make "last wins" ambiguous.
+    .orderBy(schema.secondOpinionSummaries.id)
+    .all();
 }
 
 export { schema };

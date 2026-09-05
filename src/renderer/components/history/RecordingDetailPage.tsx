@@ -126,6 +126,12 @@ export function RecordingDetailPage({ recordingId, onBack }: RecordingDetailPage
               checklist={recording.postMeetingChecklist}
               completedIndices={recording.postMeetingChecklistCompleted}
             />
+
+            {/* Second-Opinion Summaries (zcode + agy). Keyed by recordingId so
+                switching recordings remounts it cleanly - otherwise stale
+                results (or an in-flight generation's .then) from the
+                previous recording could bleed into the new one's state. */}
+            <SecondOpinionSection key={recordingId} recordingId={recordingId} />
           </div>
         </div>
 
@@ -495,6 +501,131 @@ function ActionItemsCard({ recordingId, checklist, completedIndices }: ActionIte
                 )}>
                   {item}
                 </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type SecondOpinionProvider = 'zcode' | 'agy';
+
+interface SecondOpinionState {
+  status: 'idle' | 'loading' | 'ready' | 'failed';
+  content?: string;
+  error?: string;
+}
+
+const SECOND_OPINION_LABELS: Record<SecondOpinionProvider, string> = {
+  zcode: 'zcode (GLM)',
+  agy: 'agy (Gemini/Sonnet)',
+};
+
+interface SecondOpinionSectionProps {
+  recordingId: number;
+}
+
+function SecondOpinionSection({ recordingId }: SecondOpinionSectionProps) {
+  const [results, setResults] = useState<Record<SecondOpinionProvider, SecondOpinionState>>({
+    zcode: { status: 'idle' },
+    agy: { status: 'idle' },
+  });
+
+  // Load any previously-generated second opinions for this recording.
+  useEffect(() => {
+    let cancelled = false;
+    window.electronAPI.secondOpinion.list({ recordingId }).then((res) => {
+      if (cancelled || !res.success || !res.results) return;
+      setResults((prev) => {
+        const next = { ...prev };
+        for (const row of res.results!) {
+          if (row.provider !== 'zcode' && row.provider !== 'agy') continue;
+          // Rows are ordered oldest-first; last one wins if generated more than once.
+          next[row.provider] = row.status === 'ready'
+            ? { status: 'ready', content: row.content ?? undefined }
+            : { status: 'failed', error: row.error ?? undefined };
+        }
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [recordingId]);
+
+  const runProvider = (provider: SecondOpinionProvider) => {
+    setResults((prev) => ({ ...prev, [provider]: { status: 'loading' } }));
+    window.electronAPI.secondOpinion
+      .generate({ recordingId, provider })
+      .then((res) => {
+        setResults((prev) => ({
+          ...prev,
+          [provider]: res.success
+            ? { status: 'ready', content: res.content }
+            : { status: 'failed', error: res.error },
+        }));
+      })
+      .catch((err) => {
+        setResults((prev) => ({
+          ...prev,
+          [provider]: { status: 'failed', error: err instanceof Error ? err.message : 'Request failed' },
+        }));
+      });
+  };
+
+  const handleGetSecondOpinion = () => {
+    // Fired independently, not awaited sequentially - zcode and agy can
+    // differ by 10s to 3 minutes, each card updates as its own call resolves.
+    runProvider('zcode');
+    runProvider('agy');
+  };
+
+  const isAnyLoading = results.zcode.status === 'loading' || results.agy.status === 'loading';
+  const hasAnyResult = results.zcode.status !== 'idle' || results.agy.status !== 'idle';
+
+  return (
+    <div className="bg-[#f7f7f7] border border-[#efefef] rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+      <div className="flex items-center gap-[8px]">
+        <Sparkles className="h-5 w-5 text-[#ec5b16]" />
+        <h3 className="flex-1 text-[16px] font-medium text-black tracking-[0.08px]">
+          Second Opinion
+        </h3>
+        <button
+          onClick={handleGetSecondOpinion}
+          disabled={isAnyLoading}
+          className="flex items-center gap-[6px] px-[12px] py-[6px] rounded-[8px] text-[13px] font-medium text-[#ec5b16] border border-[#ffe9d3] hover:bg-[#fff5ec] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isAnyLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {hasAnyResult ? 'Regenerate' : 'Get second opinion'}
+        </button>
+      </div>
+
+      {!hasAnyResult ? (
+        <p className="text-[13px] text-[#969696] italic">
+          Runs the transcript through zcode and agy for an alternate summary. Can take up to a
+          few minutes per provider.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-[12px]">
+          {(['zcode', 'agy'] as const).map((provider) => {
+            const state = results[provider];
+            if (state.status === 'idle') return null;
+            return (
+              <div key={provider} className="bg-white border border-[#efefef] rounded-[10px] p-[14px] flex flex-col gap-[8px]">
+                <span className="text-[13px] font-semibold text-black">{SECOND_OPINION_LABELS[provider]}</span>
+                {state.status === 'loading' && (
+                  <span className="flex items-center gap-[6px] text-[13px] text-[#969696]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...
+                  </span>
+                )}
+                {state.status === 'ready' && (
+                  <p className="text-[13px] text-[#2d2d2d] leading-[19px] whitespace-pre-wrap">{state.content}</p>
+                )}
+                {state.status === 'failed' && (
+                  <span className="text-[13px] text-[#d1242f]">{state.error || 'Failed to generate'}</span>
+                )}
               </div>
             );
           })}

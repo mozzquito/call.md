@@ -412,6 +412,13 @@ const api: IpcApi = {
       ipcRenderer.invoke('import:select-and-upload', params ?? {}),
   },
 
+  secondOpinion: {
+    generate: (params: { recordingId: number; provider: 'zcode' | 'agy' }) =>
+      ipcRenderer.invoke('second-opinion:generate', params),
+    list: (params: { recordingId: number }) =>
+      ipcRenderer.invoke('second-opinion:list', params),
+  },
+
   on: {
     recorderEvent: (callback: (event: RecorderEvent) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, data: RecorderEvent) => {

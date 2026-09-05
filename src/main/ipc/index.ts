@@ -11,6 +11,7 @@ import { setupVisualIndexIPC } from './visual-index';
 import { setupWidgetIpcHandlers, removeWidgetIpcHandlers } from './widget';
 import { setupTranslationHandlers, removeTranslationHandlers } from './translation';
 import { setupImportHandlers, removeImportHandlers } from './import';
+import { setupSecondOpinionHandlers, removeSecondOpinionHandlers } from './second-opinion';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('ipc');
@@ -30,6 +31,7 @@ export function setupIpcHandlers(): void {
   setupWidgetIpcHandlers();
   setupTranslationHandlers();
   setupImportHandlers();
+  setupSecondOpinionHandlers();
 
   logger.info('IPC handlers registered');
 }
@@ -88,6 +90,9 @@ export function removeIpcHandlers(): void {
 
   // Import handlers
   removeImportHandlers();
+
+  // Second-Opinion handlers
+  removeSecondOpinionHandlers();
 
   logger.info('IPC handlers removed');
 }

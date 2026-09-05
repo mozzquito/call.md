@@ -133,7 +133,7 @@ only — playback would require a loopback media server or custom protocol to sa
 
 ---
 
-## Feature 3: Second-Opinion AI Summary via zcode + agy
+## Feature 3: Second-Opinion AI Summary via zcode + agy — IMPLEMENTED 2026-09-05
 
 **Goal**: on-demand button that runs the meeting transcript through zcode (GLM) and agy
 (Gemini/Sonnet) in parallel, producing supplementary summaries alongside the existing
@@ -143,36 +143,53 @@ OpenAI-generated one.
 calls) — reuses มอส's already-authenticated CLI sessions, no new API keys to manage. This
 does mean the feature only works on มอส's own machine, which is fine for a solo fork.
 
-### Architecture
+### Architecture (as actually built)
 
-- On-demand only — a "Get second opinion" button in the post-meeting summary view. NOT
-  auto-triggered per meeting (CLI calls run 15s–180s+ and cost tokens; don't want that on
-  every meeting by default).
-- New `secondOpinionSummaries` table: `id`, `recordingId`, `provider` (`'zcode' | 'agy'`),
-  `content` (text), `generatedAt`. Kept separate from the existing single
-  `shortOverview`/`keyPoints` columns on `recordings` — those stay the "primary" summary;
-  this is explicitly supplementary.
-- **Security fixes required vs. the naive approach** (both reviewers flagged the same
-  issues independently):
-  - Use `child_process.execFile`/`spawn` with an **explicit argument array**, never shell
-    string interpolation (`exec`) — a transcript containing quotes/backticks/`$` is
-    attacker-controlled-shaped input even though it's just meeting text; don't give it a
-    shell to inject into.
-  - **Pass the transcript via stdin or a temp file, not argv** — multi-KB transcripts as
-    command-line arguments leak into `ps` output and can hit `ARG_MAX`.
-  - **Hardcode absolute paths**, do not rely on `$PATH` — a GUI Electron app launched from
-    Finder/Dock does not inherit the shell's `.zshrc`/`.bash_profile`, so `zcode`/`agy`
-    resolved via shell alias or bare `PATH` lookup will fail with `ENOENT`. Use
-    `node /Applications/ZCode.app/Contents/Resources/glm/zcode.cjs` and the resolved full
-    path to the `agy` binary (`~/.local/bin/agy` expanded, not relied on via `PATH`).
-  - `agy --mode plan` and `zcode --disallowedTools "Edit Write"` are the right defaults
-    already in the draft — keep them, but they are not a hard sandbox; do not treat them as
-    a security boundary, only as "avoid accidental file writes."
-  - **3-minute timeout + explicit process kill** on timeout, app quit, or user cancellation
-    — an orphaned agent-loop subprocess is a real risk otherwise.
-- Render each provider's card as its result arrives, don't wait for both — zcode and agy can
-  differ by 10s to 3 minutes in practice; blocking the UI on the slower one is bad UX for no
-  reason.
+- "Get second opinion" button in the recording detail view (`RecordingDetailPage.tsx`,
+  below Action Items). On-demand only, not auto-triggered. Clicking it fires both providers
+  independently (`generateSecondOpinion` called twice, not awaited sequentially) - each
+  card updates as its own IPC call resolves, no blocking on the slower one.
+- `second_opinion_summaries` table: `id`, `recordingId`, `provider` (`'zcode' | 'agy'`),
+  `content`, `status` (`'ready' | 'failed'` - no `'pending'`: a row is only ever inserted
+  once a generation attempt reaches a terminal outcome, so the schema doesn't carry a state
+  nothing ever writes), `error`, `generatedAt`. Queried ordered by `id`, not `generatedAt` -
+  the latter has 1-second resolution and two rows from a fast regenerate could tie.
+- **zcode is a Node script, run via Electron's own bundled Node** rather than any `node` on
+  the user's PATH: `spawn(process.execPath, [ZCODE_CJS_PATH, ...], { env: { ...,
+  ELECTRON_RUN_AS_NODE: '1' } })`. This sidesteps the whole "which node, which nvm version"
+  problem a GUI-launched app would otherwise have. **Verified working** by manually running
+  this exact invocation against the real `zcode.cjs` and a test transcript before trusting
+  it - agy (a standalone binary, no Node needed) verified the same way.
+- Transcript goes into a **temp file** (`os.tmpdir()/call-md-second-opinion-<uuid>/
+  transcript.txt`, mode `0700`), referenced by path in a short prompt - never as a
+  multi-KB argv string (leaks into `ps` output, risks `ARG_MAX`). zcode gets it via
+  `--cwd <tempDir>`, agy via `--add-dir <tempDir>` - both are agentic CLIs with their own
+  file-read capability, so they read the file themselves once told its path.
+- `spawn(..., { detached: true })` + kill the whole process group on timeout
+  (`process.kill(-child.pid, 'SIGKILL')`, falling back to `child.kill()` if `pid` is
+  unavailable) - both zcode and agy are agent loops that can spawn their own subprocesses;
+  killing only the direct child would orphan those. 3-minute timeout, 1MB combined
+  stdout+stderr cap.
+- stdout/stderr are accumulated as `Buffer[]` and decoded once at process close
+  (`Buffer.concat(...).toString('utf-8')`), not per-chunk - a multi-byte UTF-8 character
+  (Thai summaries included, given Feature 1/2) can split across a chunk boundary and get
+  mangled if decoded incrementally.
+- **In-flight request coalescing**: a module-level `Map<"<recordingId>:<provider>",
+  Promise>` in `second-opinion.service.ts` means a duplicate call for the same
+  recording+provider while one is already running returns the same in-flight promise
+  instead of spawning a second CLI process - catches both a fast double-click and
+  navigating away and back while a 3-minute run is still in progress.
+- `<SecondOpinionSection key={recordingId} .../>` - keyed by recordingId so switching
+  recordings remounts the component cleanly. Without this, a review pass (both zcode and
+  agy independently) caught that navigating to a different recording while a generation was
+  in flight, or right after, could bleed the previous recording's result (or a late-arriving
+  `.then`) into the new recording's displayed state.
+
+Reviewed twice against the actual diff (design-stage, then diff-stage after implementation)
+by zcode and agy. Diff-stage review caught all of the above real issues; agy's second
+diff-stage review (after being told to only assert against the attached diff, following an
+unrelated incident earlier in the session where it guessed wrong SDK field names) was
+accurate and matched zcode's findings closely.
 
 ---
 
