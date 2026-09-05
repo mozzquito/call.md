@@ -8,6 +8,8 @@
 [![Issues][issues-shield]][issues-url]
 [![Website][website-shield]][website-url]
 
+🇬🇧 English (you're reading this) | 🇹🇭 [ภาษาไทย](README.th.md)
+
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
@@ -493,3 +495,4 @@ specific to this fork's additions, use this repo's
 [issues-url]: https://github.com/mozzquito/call.md/issues
 [website-shield]: https://img.shields.io/website?url=https%3A%2F%2Fvideodb.io%2F&style=for-the-badge&label=videodb.io
 [website-url]: https://videodb.io/
+
