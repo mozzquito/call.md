@@ -130,10 +130,28 @@ only — playback would require a loopback media server or custom protocol to sa
 - File paths are logged as `path.basename(...)` only, not the full path, in every log call
   on this path — both review agents flagged full-path logging as an avoidable info leak
   into log files.
-- **Known gaps to accept for v1** (not blockers, just not solved yet): no dedup check if the
-  same file gets imported twice, no cleanup of the uploaded VideoDB asset if summary
-  generation fails, no guard against the recording being deleted while the pipeline is
-  still running. Revisit only if these actually bite in practice.
+- **IMPLEMENTED (2026-09-05, commit `0901142`)** — two of the three gaps above closed:
+  - SHA-256 dedup: the file is hashed before upload and checked against
+    `recordings.importedFileHash` (any non-`'failed'` prior import); a native
+    confirm dialog (Cancel / Import Anyway) warns before re-importing known
+    content. A hash failure aborts the import rather than silently
+    proceeding without one, since a file that can't be read likely can't be
+    uploaded either, and proceeding would make that content permanently
+    undetectable as a duplicate.
+  - VideoDB asset cleanup: `uploadAndTranscribeFile` now takes an
+    `onUploaded` callback fired the moment a real, billable asset exists
+    (before the transcription-capability check, not just on success), so
+    `processImportedRecording`'s outer catch can delete it if the pipeline
+    fails before the recording reaches `status: 'available'`. Gated by a
+    `reachedAvailable` flag - once available, the asset is never touched
+    regardless of what fails afterward. This also surfaced and fixed a
+    pre-existing bug: `indexRecordingForSearch()` sat outside any inner
+    try/catch and could flip an already-successful recording to `'failed'`
+    if it threw; it now has its own try/catch.
+  - **Still a known gap**: no guard against the recording being deleted
+    while the pipeline is still running (no delete-recording feature exists
+    in this app at all yet, live or imported, so this is moot until one is
+    built).
 
 ---
 
