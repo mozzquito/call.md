@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="ฟีเจอร์ทั้งหมดของ call.md ฉบับภาษาไทย — แปลสด, นำเข้าไฟล์เก่า, สรุปสองความเห็นจาก zcode/agy, และค้นหาข้ามทุกการประชุม">
+<title>Call.md Thai Edition</title>
+<style>
+  :root {
+    --bg: #FAF7F0;
+    --surface: #FFFFFF;
+    --surface-dim: #F2EDE1;
+    --ink: #1A1F2E;
+    --ink-dim: #5B6478;
+    --ink-faint: #8991A3;
+    --accent: #B8721A;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #F3E2C8;
+    --line: rgba(26,31,46,0.12);
+    --line-soft: rgba(26,31,46,0.07);
+    --code-bg: #EFE9DB;
+    --good: #3D7A4E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1420;
+      --surface: #171E2E;
+      --surface-dim: #131826;
+      --ink: #EDEFF5;
+      --ink-dim: #9AA3B8;
+      --ink-faint: #6B7488;
+      --accent: #E8A33D;
+      --accent-ink: #1A1305;
+      --accent-soft: #2E2412;
+      --line: rgba(255,255,255,0.10);
+      --line-soft: rgba(255,255,255,0.06);
+      --code-bg: #10151F;
+      --good: #6FCB86;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1420;
+    --surface: #171E2E;
+    --surface-dim: #131826;
+    --ink: #EDEFF5;
+    --ink-dim: #9AA3B8;
+    --ink-faint: #6B7488;
+    --accent: #E8A33D;
+    --accent-ink: #1A1305;
+    --accent-soft: #2E2412;
+    --line: rgba(255,255,255,0.10);
+    --line-soft: rgba(255,255,255,0.06);
+    --code-bg: #10151F;
+    --good: #6FCB86;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+    line-height: 1.7;
+  }
+  h1, h2, h3, .display {
+    font-family: 'Bai Jamjuree', 'Sarabun', sans-serif;
+    text-wrap: balance;
+    letter-spacing: 0.01em;
+  }
+  code, .mono, .tag {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 28px 96px;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .hero h1 {
+    font-size: clamp(34px, 5.5vw, 52px);
+    font-weight: 600;
+    margin: 0;
+    color: var(--ink);
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p.lede {
+    font-size: 18px;
+    color: var(--ink-dim);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    background: var(--surface);
+  }
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-size: 14.5px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+  }
+  .btn-accent { background: var(--accent); color: var(--accent-ink); }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+
+  /* ---------- Section scaffolding ---------- */
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { margin-bottom: 28px; }
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+  }
+  h2 {
+    font-size: 27px;
+    font-weight: 600;
+    margin: 4px 0 8px;
+  }
+  .section-sub {
+    color: var(--ink-dim);
+    max-width: 62ch;
+    font-size: 15.5px;
+  }
+
+  /* ---------- Pain points ---------- */
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .pain-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pain-mark {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .pain-card p { margin: 0; font-size: 14.5px; color: var(--ink-dim); }
+  .pain-card strong { color: var(--ink); font-size: 15.5px; }
+
+  /* ---------- Feature blocks ---------- */
+  .feature {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 18px;
+    padding: 22px 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .feature:first-of-type { border-top: none; padding-top: 0; }
+  .feature-icon {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .feature h3 {
+    font-size: 18px;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .feature h3 .solves {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--good);
+    border: 1px solid var(--good);
+    border-radius: 20px;
+    padding: 2px 9px;
+    letter-spacing: 0.02em;
+  }
+  .feature p { margin: 0 0 10px; color: var(--ink-dim); font-size: 15px; }
+  .feature p:last-child { margin-bottom: 0; }
+  .feature .detail {
+    font-size: 13.5px;
+    color: var(--ink-faint);
+  }
+  .feature code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+
+  /* ---------- Base features ---------- */
+  .base-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 28px;
+  }
+  .base-item {
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-soft);
+    font-size: 14.5px;
+    color: var(--ink-dim);
+  }
+  .base-item:nth-child(1), .base-item:nth-child(2) { border-top: none; }
+  .base-item b { color: var(--ink); font-weight: 600; }
+  .base-item::before { content: "·"; color: var(--accent); font-weight: 700; }
+
+  /* ---------- Tech stack ---------- */
+  .stack-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+  .stack-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    padding: 7px 12px;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+  }
+
+  /* ---------- Changelog ---------- */
+  .log {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .log-row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-soft);
+    font-size: 14px;
+    align-items: baseline;
+  }
+  .log-row:first-child { border-top: none; }
+  .log-hash {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--accent);
+    font-size: 12.5px;
+  }
+  .log-msg { color: var(--ink-dim); }
+
+  /* ---------- Footer ---------- */
+  footer {
+    padding: 48px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  footer .sign {
+    font-size: 13.5px;
+    color: var(--ink-faint);
+    max-width: 46ch;
+  }
+  footer a { color: var(--accent); }
+  .repo-link {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--line);
+  }
+
+  @media (max-width: 720px) {
+    .pain-grid { grid-template-columns: 1fr; }
+    .base-grid { grid-template-columns: 1fr; }
+    .base-item:nth-child(2) { border-top: 1px solid var(--line-soft); }
+  }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=Sarabun:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">video-db/call.md — mozzquito fork</div>
+    <h1>Call.md <span>ฉบับภาษาไทย</span></h1>
+    <p class="lede">
+      แอปประชุม AI Copilot ตัวเดิม บวกชุดฟีเจอร์ที่เติมเข้าไปให้ใช้งานกับภาษาไทยได้จริง —
+      ตั้งแต่แปลสดระหว่างประชุม ไปจนถึงสรุปท้ายประชุมเป็นไทย และค้นหาข้ามการประชุมทุกครั้งที่เคยบันทึกไว้
+    </p>
+    <div class="badges">
+      <span class="badge">Electron 42</span>
+      <span class="badge">TypeScript</span>
+      <span class="badge">React 19</span>
+      <span class="badge">SQLite + FTS5</span>
+      <span class="badge">VideoDB SDK</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-accent" href="https://github.com/mozzquito/call.md">ดู Repository →</a>
+      <a class="btn btn-ghost" href="https://github.com/mozzquito/call.md#quick-install">วิธีติดตั้ง</a>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <div class="section-num">จุดเริ่มต้น</div>
+      <h2>ปัญหา 3 ข้อที่ทำให้ต้อง fork</h2>
+      <p class="section-sub">
+        Call.md ตัวต้นฉบับทำเรื่องประชุมได้ดีอยู่แล้ว แต่ยังมีช่องว่างสำหรับคนที่ประชุมเป็นภาษาไทยเป็นหลัก
+      </p>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <span class="pain-mark">01</span>
+        <strong>ไม่รองรับภาษาไทย</strong>
+        <p>ถอดเสียงสด (real-time streaming) ของเอนจินเดิมไม่รองรับภาษาไทย ทั้งที่การประชุมส่วนใหญ่คุยกันเป็นไทย</p>
+      </div>
+      <div class="pain-card">
+        <span class="pain-mark">02</span>
+        <strong>อยากได้ความเห็นที่สอง</strong>
+        <p>อยากให้ AI agent ตัวอื่น (zcode, agy) ช่วยอ่านการประชุมแล้วสรุป/แปล ให้เป็นอีกมุมมองหนึ่งนอกเหนือจากสรุปหลักของแอป</p>
+      </div>
+      <div class="pain-card">
+        <span class="pain-mark">03</span>
+        <strong>ใช้กับไฟล์เก่าไม่ได้</strong>
+        <p>อยากดึงไฟล์บันทึก Google Meet ที่มีอยู่แล้วย้อนหลังมาถอดเสียงและสรุปในแอปเดียวกัน ไม่ใช่แค่การประชุมที่บันทึกสดเท่านั้น</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="section-num">สิ่งที่เพิ่มเข้ามา</div>
+      <h2>6 ฟีเจอร์ใหม่</h2>
+      <p class="section-sub">
+        แต่ละอันมีป้ายบอกว่าไปแก้ปัญหาข้อไหนจากด้านบน
+      </p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">แปล</div>
+      <div>
+        <h3>แปลไทยแบบสด <span class="solves">แก้ข้อ 01</span></h3>
+        <p>เปิดใช้งานได้จาก Settings → Transcription — เมื่อเปิดแล้ว ทุกประโยคที่ถอดเสียงจบระหว่างประชุมจะถูกส่งไปแปลเป็นไทยและแสดงเป็นบรรทัดที่สองใต้ต้นฉบับทันที ไม่ต้องรอจนจบประชุม</p>
+        <p class="detail">คิวแปลทำงานคู่ขนาน (concurrency 2) พร้อมบริบทประโยคก่อนหน้า เพื่อให้คำแปลสอดคล้องกับสิ่งที่คุยกันมา</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">นำเข้า</div>
+      <div>
+        <h3>นำเข้าไฟล์เก่า + ถอดเสียงแบบ batch <span class="solves">แก้ข้อ 03</span></h3>
+        <p>เลือกไฟล์วิดีโอ/เสียงที่มีอยู่แล้ว (เช่นไฟล์บันทึก Google Meet เก่า) ให้แอปอัปโหลดขึ้น VideoDB แล้วถอดเสียงแบบ batch ซึ่งรองรับภาษาไทยเต็มรูปแบบ ต่างจากโหมดถอดเสียงสด</p>
+        <p class="detail">ตัดข้อความเป็นช่วงตามจำนวนตัวอักษร ไม่ใช่ตามช่องว่างระหว่างคำ — เพราะภาษาไทยเขียนติดกันไม่มีเว้นวรรค</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">2nd</div>
+      <div>
+        <h3>สรุปความเห็นที่สองจาก zcode + agy <span class="solves">แก้ข้อ 02</span></h3>
+        <p>กดปุ่มเดียว ให้ AI agent อีกสองตัว (zcode บน GLM, agy บน Gemini/Sonnet) อ่านบทถอดเสียงทั้งหมดแล้วเขียนสรุปของตัวเองแยกจากสรุปหลักของแอป เทียบมุมมองกันได้ในหน้าเดียว</p>
+        <p class="detail">รันแบบ process แยก มี timeout 3 นาที และถ้า output เกิน 1MB จะ kill process ทิ้งทันทีกันหน่วยความจำบวม</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">TH</div>
+      <div>
+        <h3>แปลสรุปท้ายประชุมเป็นไทย <span class="solves">แก้ข้อ 01</span></h3>
+        <p>ไม่ใช่แค่คำพูดสดที่แปล — สรุปภาพรวม (Overview), ประเด็นสำคัญ (Key Points) และเช็คลิสต์หลังประชุม (Action Items) ก็ถูกแปลเป็นไทยเก็บไว้ถาวรด้วย แสดงคู่กับต้นฉบับภาษาอังกฤษ</p>
+        <p class="detail">ถ้าแปลไม่สำเร็จ จะไม่แสดงข้อความอังกฤษปนมาเป็นไทยหลอกๆ — ปล่อยว่างไว้ดีกว่าให้ข้อมูลผิด</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">ค้น</div>
+      <div>
+        <h3>ค้นหาข้ามทุกการประชุม</h3>
+        <p>ช่องค้นหาเดียวค้นได้ทั้งชื่อประชุม สรุป บทถอดเสียงเต็ม ทั้งภาษาไทยและอังกฤษปนกัน โดยใช้ SQLite FTS5 กับ <code>tokenize='trigram'</code> ซึ่งตัดคำเป็นชุดตัวอักษร 3 ตัว แทนการตัดตามช่องว่างแบบเดิม</p>
+        <p class="detail">เพราะ trigram ต้องการอย่างน้อย 3 ตัวอักษรถึงจะแมตช์ได้ คำสั้นกว่านั้นในคำค้นจะถูกตัดทิ้งก่อน ไม่งั้นจะทำให้ทั้งคำค้นไม่ขึ้นผลลัพธ์เลย</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">กัน</div>
+      <div>
+        <h3>ป้องกันการนำเข้าไฟล์ซ้ำ + ล้างข้อมูลเมื่อล้มเหลว</h3>
+        <p>เช็ค SHA-256 ของไฟล์ก่อนอัปโหลดทุกครั้ง ถ้าเคยนำเข้าไฟล์เดียวกันมาแล้วจะถามก่อนว่าจะนำเข้าซ้ำไหม และถ้ากระบวนการนำเข้าล้มเหลวหลังอัปโหลดสำเร็จ ไฟล์ที่ค้างอยู่บน VideoDB จะถูกลบทิ้งอัตโนมัติ ไม่ปล่อยขยะค้าง</p>
+        <p class="detail">พร้อมปุ่มคัดลอกเช็คลิสต์หลังประชุมเป็น markdown checklist ไว้วางต่อที่อื่นได้เลย</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="section-num">ของเดิมจากต้นทาง</div>
+      <h2>ฟีเจอร์หลักที่ Call.md มีอยู่แล้ว</h2>
+      <p class="section-sub">ยังอยู่ครบ ไม่ได้แตะต้อง — เพื่อให้เห็นภาพรวมทั้งแอป ไม่ใช่แค่ส่วนที่เพิ่มเข้าไป</p>
+    </div>
+    <div class="base-grid">
+      <div class="base-item"><b>ถอดเสียงแยกช่อง</b>&nbsp;— เสียงเรากับอีกฝ่ายแยกกันชัดเจน</div>
+      <div class="base-item"><b>Live Assist</b>&nbsp;— AI แนะนำสิ่งที่ควรพูด/ถาม แบบเรียลไทม์</div>
+      <div class="base-item"><b>Conversation Metrics</b>&nbsp;— สัดส่วนการพูด, WPM, จับ monologue</div>
+      <div class="base-item"><b>MCP Auto-Trigger</b>&nbsp;— เรียกเครื่องมือ MCP ตามบริบทการคุยโดยอัตโนมัติ</div>
+      <div class="base-item"><b>Bookmark</b>&nbsp;— มาร์กช่วงสำคัญไว้ดูย้อนหลัง</div>
+      <div class="base-item"><b>Meeting Setup Wizard</b>&nbsp;— AI ช่วยตั้งคำถามและวาระก่อนประชุม</div>
+      <div class="base-item"><b>Export + Webhook</b>&nbsp;— ส่งออก markdown หรือส่งต่อ n8n/Zapier/CRM อัตโนมัติ</div>
+      <div class="base-item"><b>Google Calendar Sync</b>&nbsp;— ดึงตารางประชุมที่จะถึงเข้ามาในแอป</div>
+      <div class="base-item"><b>Local-First Storage</b>&nbsp;— ประวัติและบทถอดเสียงเก็บใน SQLite เครื่องตัวเอง</div>
+      <div class="base-item"><b>จำกัดเวลาบันทึก 2 ชม.</b>&nbsp;— หยุดอัตโนมัติพร้อมเตือนล่วงหน้า 5 นาที</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="section-num">เบื้องหลัง</div>
+      <h2>Stack ที่ใช้</h2>
+    </div>
+    <div class="stack-row">
+      <span class="stack-chip">Electron 42</span>
+      <span class="stack-chip">TypeScript 5.8</span>
+      <span class="stack-chip">React 19</span>
+      <span class="stack-chip">Drizzle ORM</span>
+      <span class="stack-chip">SQLite (FTS5 trigram)</span>
+      <span class="stack-chip">tRPC 11 + Hono</span>
+      <span class="stack-chip">VideoDB SDK</span>
+      <span class="stack-chip">VideoDB STT (AssemblyAI)</span>
+      <span class="stack-chip">MCP SDK</span>
+      <span class="stack-chip">Zustand</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="section-num">ประวัติการทำ</div>
+      <h2>Commit ที่เพิ่มเข้ามา</h2>
+    </div>
+    <div class="log">
+      <div class="log-row"><span class="log-hash">3217122</span><span class="log-msg">feat: add live EN-&gt;Thai translation overlay for transcripts</span></div>
+      <div class="log-row"><span class="log-hash">d8c009d</span><span class="log-msg">feat: add import &amp; batch-process for existing recordings</span></div>
+      <div class="log-row"><span class="log-hash">a6c0cb8</span><span class="log-msg">feat: add second-opinion AI summary via zcode + agy</span></div>
+      <div class="log-row"><span class="log-hash">66ce19e</span><span class="log-msg">feat: translate final meeting summary to Thai</span></div>
+      <div class="log-row"><span class="log-hash">6f96034</span><span class="log-msg">feat: add full-text search over recording history</span></div>
+      <div class="log-row"><span class="log-hash">0901142</span><span class="log-msg">feat: harden import pipeline and add action-item export</span></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="sign">
+      Fork นี้พัฒนาเพื่อใช้งานส่วนตัว โดยทำงานร่วมกับ Claude Code, zcode และ agy
+      ตลอดทุกขั้นตอนตั้งแต่ออกแบบจนถึงรีวิวโค้ด — เปิดเป็น public repo
+      ให้ใครอยากลองเอาไปปรับใช้กับทีมที่ประชุมเป็นภาษาไทยก็ได้เลย
+    </div>
+    <a class="repo-link" href="https://github.com/mozzquito/call.md">github.com/mozzquito/call.md</a>
+  </footer>
+
+</div>
+</body>
+</html>
