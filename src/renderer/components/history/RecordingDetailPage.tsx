@@ -480,12 +480,32 @@ interface ActionItemsCardProps {
 
 function ActionItemsCard({ recordingId, checklist, checklistTh, completedIndices }: ActionItemsCardProps) {
   const [checked, setChecked] = useState<Set<number>>(new Set(completedIndices || []));
+  const [copied, setCopied] = useState(false);
   const updateChecklistMutation = trpc.recordings.updateChecklistCompletion.useMutation();
 
   // Sync local state when completedIndices changes
   useEffect(() => {
     setChecked(new Set(completedIndices || []));
   }, [completedIndices]);
+
+  const handleCopy = async () => {
+    if (!checklist) return;
+    // Thai goes as an indented annotation under each item rather than a
+    // second full block (KeyPointsCard's pattern) - a checklist repeated
+    // twice with checkboxes both times would read as double the items.
+    const lines = checklist.map((item, idx) => {
+      const box = checked.has(idx) ? '[x]' : '[ ]';
+      const line = `- ${box} ${item}`;
+      const th = checklistTh?.[idx];
+      // 2-space indent, not more: GFM treats >=4 spaces under a `- ` list
+      // item as an indented code block, which would render the Thai line
+      // as monospaced code in GitHub/Slack/Obsidian instead of plain text.
+      return th ? `${line}\n  ${th}` : line;
+    });
+    await navigator.clipboard.writeText(lines.join('\n'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleToggle = (idx: number) => {
     setChecked(prev => {
@@ -511,9 +531,18 @@ function ActionItemsCard({ recordingId, checklist, checklistTh, completedIndices
       {/* Header */}
       <div className="flex items-center gap-[8px]">
         <CheckSquare className="h-5 w-5 text-[#ec5b16]" />
-        <h3 className="text-[16px] font-medium text-black tracking-[0.08px]">
+        <h3 className="flex-1 text-[16px] font-medium text-black tracking-[0.08px]">
           Action Items
         </h3>
+        {!isEmpty && (
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-[4px] px-[10px] py-[6px] rounded-[8px] text-[12px] font-medium text-[#ec5b16] hover:bg-white transition-colors"
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        )}
       </div>
 
       {/* Content */}

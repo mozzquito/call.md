@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { eq, desc, and, gte, lte } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, ne } from 'drizzle-orm';
 import { app } from 'electron';
 import crypto from 'crypto';
 import path from 'path';
@@ -87,6 +87,7 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
       metrics_snapshot TEXT,
       source TEXT NOT NULL DEFAULT 'live' CHECK(source IN ('live', 'imported')),
       imported_file_name TEXT,
+      imported_file_hash TEXT,
       short_overview_th TEXT,
       key_points_th TEXT,
       post_meeting_checklist_th TEXT
@@ -377,9 +378,14 @@ function ensureRecordingColumns(): void {
   addColumnIfMissing('post_meeting_checklist_completed', "ALTER TABLE recordings ADD COLUMN post_meeting_checklist_completed TEXT");
   addColumnIfMissing('source', "ALTER TABLE recordings ADD COLUMN source TEXT NOT NULL DEFAULT 'live'");
   addColumnIfMissing('imported_file_name', "ALTER TABLE recordings ADD COLUMN imported_file_name TEXT");
+  addColumnIfMissing('imported_file_hash', "ALTER TABLE recordings ADD COLUMN imported_file_hash TEXT");
   addColumnIfMissing('short_overview_th', "ALTER TABLE recordings ADD COLUMN short_overview_th TEXT");
   addColumnIfMissing('key_points_th', "ALTER TABLE recordings ADD COLUMN key_points_th TEXT");
   addColumnIfMissing('post_meeting_checklist_th', "ALTER TABLE recordings ADD COLUMN post_meeting_checklist_th TEXT");
+
+  sqlite.exec(
+    'CREATE INDEX IF NOT EXISTS idx_recordings_imported_file_hash ON recordings(imported_file_hash)'
+  );
 }
 
 function ensureTranscriptSegmentColumns(): void {
@@ -603,6 +609,24 @@ export function getRecordingBySessionId(sessionId: string) {
     .select()
     .from(schema.recordings)
     .where(eq(schema.recordings.sessionId, sessionId))
+    .get();
+}
+
+// Duplicate-import detection (Feature 6): finds the most recent prior
+// import with the same file content hash, excluding failed ones - a failed
+// import legitimately deserves a retry, not a duplicate warning.
+export function getRecordingByImportedFileHash(hash: string) {
+  const database = getDatabase();
+  return database
+    .select()
+    .from(schema.recordings)
+    .where(
+      and(
+        eq(schema.recordings.importedFileHash, hash),
+        ne(schema.recordings.status, 'failed')
+      )
+    )
+    .orderBy(desc(schema.recordings.createdAt))
     .get();
 }
 

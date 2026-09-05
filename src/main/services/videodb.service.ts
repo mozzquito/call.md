@@ -279,7 +279,15 @@ ${transcriptText}`;
    */
   async uploadAndTranscribeFile(
     filePath: string,
-    languageCode?: string
+    languageCode?: string,
+    // Fired right after the upload itself succeeds, before transcript
+    // generation - the caller uses this to remember a handle capable of
+    // deleting the asset, so that a failure anywhere downstream (including
+    // inside this method, e.g. generateTranscript throwing) still leaves the
+    // caller able to clean up the orphaned upload. A closure returned only
+    // on success would be unavailable for exactly the failure modes that
+    // matter most here.
+    onUploaded?: (asset: { id: string; delete: () => Promise<unknown> }) => void
   ): Promise<{
     assetId: string;
     streamUrl: string | null;
@@ -296,6 +304,17 @@ ${transcriptText}`;
     if (!uploaded) {
       throw new Error('VideoDB upload returned no asset');
     }
+
+    // Fire onUploaded as soon as we know a real, billable asset exists on
+    // VideoDB's side and can be deleted - deliberately BEFORE the
+    // transcription-capability check below. That check can itself throw
+    // (an unexpected asset type), and an asset already exists server-side
+    // in that case too; the caller must be able to clean it up regardless
+    // of which check ends up rejecting the upload.
+    if ('id' in uploaded && 'delete' in uploaded) {
+      onUploaded?.(uploaded as { id: string; delete: () => Promise<unknown> });
+    }
+
     if (!('generateTranscript' in uploaded) || !('getTranscriptText' in uploaded)) {
       throw new Error('Uploaded file does not support transcription - expected a video or audio file');
     }
@@ -303,6 +322,8 @@ ${transcriptText}`;
     // Duck-typed rather than imported from the `videodb` package's Video/Audio
     // classes directly - only the members this method actually uses, since
     // Audio assets don't expose stream/player URLs the way Video does.
+    // `delete` exists on both the Video and Audio SDK classes (verified
+    // against node_modules/videodb/dist/core/{video,audio}.d.ts).
     const asset = uploaded as {
       id: string;
       length: number;
@@ -310,6 +331,7 @@ ${transcriptText}`;
       playerUrl?: string;
       generateTranscript: (force?: boolean, languageCode?: string) => Promise<unknown>;
       getTranscriptText: (start?: number, end?: number) => Promise<string>;
+      delete: () => Promise<unknown>;
     };
     logger.info({ assetId: asset.id }, 'Upload complete, generating transcript');
 

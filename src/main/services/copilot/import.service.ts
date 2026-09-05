@@ -15,6 +15,8 @@
  */
 
 import path from 'path';
+import { createHash } from 'crypto';
+import { createReadStream } from 'fs';
 import { createChildLogger } from '../../lib/logger';
 import { createVideoDBService } from '../videodb.service';
 import { getSummaryGenerator } from './summary-generator.service';
@@ -24,6 +26,18 @@ import { createTranscriptSegment, updateRecording, indexRecordingForSearch } fro
 import { v4 as uuid } from 'uuid';
 
 const logger = createChildLogger('import-service');
+
+// Streaming SHA-256 rather than reading the whole file into memory - import
+// files can be up to 5GB (see ipc/import.ts's size ceiling).
+export function hashFile(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = createHash('sha256');
+    const stream = createReadStream(filePath);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', reject);
+  });
+}
 
 // Approximate segment size, in characters rather than words - Thai (the
 // whole reason this feature exists) doesn't delimit words with spaces, so a
@@ -99,12 +113,24 @@ export async function processImportedRecording(
   languageCode?: string
 ): Promise<void> {
   const fileName = path.basename(filePath);
+  // Tracks the uploaded VideoDB asset (if any) so the outer catch can clean
+  // it up on a failure that leaves the recording never reaching
+  // 'available' - set via a callback rather than the method's return value
+  // so it's populated even if uploadAndTranscribeFile itself throws after
+  // the upload succeeded (e.g. generateTranscript failing).
+  let uploadedAsset: { id: string; delete: () => Promise<unknown> } | undefined;
+  // Gates the cleanup above: once the recording is genuinely available, the
+  // asset must never be deleted even if something unrelated fails later
+  // (e.g. search indexing) - see the indexRecordingForSearch fix below.
+  let reachedAvailable = false;
 
   try {
     logger.info({ recordingId, fileName, languageCode }, 'Starting import processing');
 
     const videoDBService = createVideoDBService(apiKey, apiUrl, collectionId);
-    const result = await videoDBService.uploadAndTranscribeFile(filePath, languageCode);
+    const result = await videoDBService.uploadAndTranscribeFile(filePath, languageCode, (asset) => {
+      uploadedAsset = asset;
+    });
 
     logger.info(
       { recordingId, assetId: result.assetId, durationSeconds: result.durationSeconds },
@@ -143,6 +169,7 @@ export async function processImportedRecording(
       status: 'available',
       insightsStatus: 'processing',
     });
+    reachedAvailable = true;
 
     logger.info({ recordingId, segmentCount: chunks.length }, 'Segments persisted, generating summary');
 
@@ -179,11 +206,34 @@ export async function processImportedRecording(
 
     // Feature 5: index for search regardless of whether the summary above
     // succeeded - the transcript segments were already persisted earlier
-    // and are searchable on their own even without a summary.
-    indexRecordingForSearch(recordingId);
+    // and are searchable on their own even without a summary. Own try/catch:
+    // this runs after the recording is already genuinely 'available', so a
+    // failure here must never fall into the outer catch and flip a fully
+    // usable recording to 'failed' (pre-existing bug, caught by zcode while
+    // reviewing the hardening changes below).
+    try {
+      indexRecordingForSearch(recordingId);
+    } catch (indexError) {
+      logger.error({ recordingId, error: indexError }, 'Failed to index imported recording for search');
+    }
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     logger.error({ recordingId, fileName, error: errMsg }, 'Import processing failed');
+
+    // Clean up the orphaned VideoDB asset, but only if the recording never
+    // reached 'available' - once it has, the asset is legitimately in use
+    // by a working recording regardless of what failed afterward.
+    if (!reachedAvailable && uploadedAsset) {
+      try {
+        await uploadedAsset.delete();
+        logger.info({ recordingId, assetId: uploadedAsset.id }, 'Cleaned up orphaned VideoDB asset after import failure');
+      } catch (cleanupError) {
+        logger.error(
+          { recordingId, assetId: uploadedAsset.id, error: cleanupError },
+          'Failed to clean up orphaned VideoDB asset - may need manual removal'
+        );
+      }
+    }
 
     try {
       updateRecording(recordingId, { status: 'failed' });

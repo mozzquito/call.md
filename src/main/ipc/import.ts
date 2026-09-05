@@ -14,9 +14,9 @@ import path from 'path';
 import { v4 as uuid } from 'uuid';
 import { createChildLogger } from '../lib/logger';
 import { loadAppConfig, loadRuntimeConfig } from '../lib/config';
-import { getUserByAccessToken, createRecording } from '../db';
+import { getUserByAccessToken, createRecording, getRecordingByImportedFileHash } from '../db';
 import { createVideoDBService } from '../services/videodb.service';
-import { processImportedRecording } from '../services/copilot/import.service';
+import { processImportedRecording, hashFile } from '../services/copilot/import.service';
 import { getMainWindow } from './capture';
 
 const logger = createChildLogger('import-ipc');
@@ -78,6 +78,9 @@ export function setupImportHandlers(): void {
         return { success: false, error: 'File is too large' };
       }
 
+      // Cheap preflight checks first, so a user who isn't signed in (or has
+      // a broken config) gets that error immediately rather than after
+      // answering a duplicate-file prompt for nothing.
       const appConfig = loadAppConfig();
       const user = appConfig.accessToken ? getUserByAccessToken(appConfig.accessToken) : undefined;
       if (!user?.apiKey) {
@@ -95,11 +98,55 @@ export function setupImportHandlers(): void {
         }
       }
 
+      // Duplicate-import detection: hash the file and check for a prior
+      // import of the same content before spending an upload+transcribe
+      // cycle on it again. Streams the whole file, so this can take a few
+      // seconds on a large file - accepted tradeoff for a personal-use tool,
+      // no progress UI for this step. Failure aborts the import rather than
+      // silently proceeding without a hash: we've already committed to
+      // reading the whole file at this point, a read failure here likely
+      // means the file itself is unreadable, and proceeding would also
+      // permanently leave that file undetectable as a duplicate later.
+      let fileHash: string;
+      try {
+        fileHash = await hashFile(filePath);
+      } catch (error) {
+        logger.error({ error, filePath }, 'Failed to hash file for duplicate check');
+        return { success: false, error: 'Could not read the selected file' };
+      }
+
+      const existing = getRecordingByImportedFileHash(fileHash);
+      if (existing) {
+        const statusNote = existing.status === 'processing' ? ' (still processing)' : '';
+        // SQLite's datetime('now') stores UTC without a timezone marker, so
+        // `new Date(...)` alone would parse it as local time - append 'Z'
+        // to interpret it correctly, matching the renderer's formatDate().
+        const importedAt = new Date(existing.createdAt.replace(' ', 'T') + 'Z').toLocaleString();
+        const messageBoxOptions: Electron.MessageBoxOptions = {
+          type: 'question',
+          buttons: ['Cancel', 'Import Anyway'],
+          defaultId: 0,
+          cancelId: 0,
+          title: 'Duplicate file detected',
+          message: `This file matches an existing recording: "${existing.meetingName || existing.importedFileName || 'Untitled'}"${statusNote}`,
+          detail: `Imported on ${importedAt}. Import this file again anyway?`,
+        };
+        const activeWindow = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+        const choice = activeWindow
+          ? await dialog.showMessageBox(activeWindow, messageBoxOptions)
+          : await dialog.showMessageBox(messageBoxOptions);
+
+        if (choice.response === 0) {
+          return { success: true, cancelled: true };
+        }
+      }
+
       const recording = createRecording({
         sessionId: `import-${uuid()}`,
         status: 'processing',
         source: 'imported',
         importedFileName: path.basename(filePath),
+        importedFileHash: fileHash,
       });
 
       logger.info({ recordingId: recording.id, fileName: path.basename(filePath) }, 'Import started');
