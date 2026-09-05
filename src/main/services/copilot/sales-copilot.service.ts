@@ -48,6 +48,8 @@ import {
 } from './summary-generator.service';
 
 import { exportMeetingToMarkdown } from '../markdown-export.service';
+import { maybeTranslateSummaryToThai } from './summary-translation.service';
+import { loadAppConfig } from '../../lib/config';
 
 
 const log = logger.child({ module: 'call-md' });
@@ -424,6 +426,21 @@ export class MeetingCopilotService extends EventEmitter {
       };
     }
 
+    // Translate the summary to Thai if the setting is on (completes the loop
+    // from the live per-segment overlay, which only translates the live
+    // view, not this saved summary). Awaited here so it's persisted in the
+    // same write as the English summary - see summary-translation.service.ts.
+    // Belt-and-suspenders try/catch: the function's own contract is "never
+    // throws", but a thrown error here must not be allowed to skip saving
+    // the (already-generated, already-valid) English summary below.
+    let summaryTh: Awaited<ReturnType<typeof maybeTranslateSummaryToThai>> = null;
+    try {
+      const translationEnabled = loadAppConfig().translationEnabled ?? false;
+      summaryTh = await maybeTranslateSummaryToThai(summary, translationEnabled);
+    } catch (error) {
+      log.error({ error, recordingId }, 'Summary translation threw unexpectedly, continuing without it');
+    }
+
     // Save to database
     try {
       log.info({ recordingId, hasOverview: summary.shortOverview.length > 0 }, 'Saving call data to database');
@@ -433,6 +450,11 @@ export class MeetingCopilotService extends EventEmitter {
         postMeetingChecklist: JSON.stringify(summary.postMeetingChecklist),
         metricsSnapshot: JSON.stringify(metrics),
         duration: Math.round(duration),
+        ...(summaryTh ? {
+          shortOverviewTh: summaryTh.shortOverviewTh,
+          keyPointsTh: JSON.stringify(summaryTh.keyPointsTh),
+          postMeetingChecklistTh: JSON.stringify(summaryTh.postMeetingChecklistTh),
+        } : {}),
       });
       log.info({ recordingId }, 'Call data saved to database');
     } catch (error) {

@@ -63,6 +63,10 @@ function toApiRecording(dbRecording: ReturnType<typeof getRecordingById>) {
     (dbRecording as any).postMeetingChecklistCompleted,
     z.array(z.number())
   );
+  const postMeetingChecklistTh = safeJsonParse(
+    (dbRecording as any).postMeetingChecklistTh,
+    z.array(z.string())
+  );
 
   return {
     id: dbRecording.id,
@@ -92,6 +96,10 @@ function toApiRecording(dbRecording: ReturnType<typeof getRecordingById>) {
     // Import (Feature 2)
     source: ((dbRecording as any).source || 'live') as 'live' | 'imported',
     importedFileName: (dbRecording as any).importedFileName || null,
+    // Final-summary Thai translation (Feature 4)
+    shortOverviewTh: (dbRecording as any).shortOverviewTh || null,
+    keyPointsTh: safeJsonParse<KeyPoints>((dbRecording as any).keyPointsTh, KeyPointsSchema),
+    postMeetingChecklistTh: postMeetingChecklistTh || null,
   };
 }
 

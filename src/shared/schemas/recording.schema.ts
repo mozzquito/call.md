@@ -98,6 +98,10 @@ export const RecordingSchema = z.object({
   // Import (Feature 2)
   source: RecordingSourceSchema.optional(),
   importedFileName: z.string().nullable().optional(),
+  // Final-summary Thai translation (Feature 4)
+  shortOverviewTh: z.string().nullable().optional(),
+  keyPointsTh: KeyPointsSchema.optional(),
+  postMeetingChecklistTh: z.array(z.string()).nullable().optional(),
 });
 
 export const CreateRecordingInputSchema = z.object({

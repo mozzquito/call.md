@@ -18,6 +18,8 @@ import path from 'path';
 import { createChildLogger } from '../../lib/logger';
 import { createVideoDBService } from '../videodb.service';
 import { getSummaryGenerator } from './summary-generator.service';
+import { maybeTranslateSummaryToThai } from './summary-translation.service';
+import { loadAppConfig } from '../../lib/config';
 import { createTranscriptSegment, updateRecording } from '../../db';
 import { v4 as uuid } from 'uuid';
 
@@ -146,11 +148,28 @@ export async function processImportedRecording(
 
     try {
       const summary = await getSummaryGenerator().generate(recordingId, {});
+
+      // Belt-and-suspenders try/catch: the function's own contract is "never
+      // throws", but a thrown error here must not be allowed to fall into
+      // the outer catch and mark an already-successful summary as failed.
+      let summaryTh: Awaited<ReturnType<typeof maybeTranslateSummaryToThai>> = null;
+      try {
+        const translationEnabled = loadAppConfig().translationEnabled ?? false;
+        summaryTh = await maybeTranslateSummaryToThai(summary, translationEnabled);
+      } catch (error) {
+        logger.error({ error, recordingId }, 'Summary translation threw unexpectedly, continuing without it');
+      }
+
       updateRecording(recordingId, {
         insightsStatus: 'ready',
         shortOverview: summary.shortOverview,
         keyPoints: JSON.stringify(summary.keyPoints),
         postMeetingChecklist: JSON.stringify(summary.postMeetingChecklist),
+        ...(summaryTh ? {
+          shortOverviewTh: summaryTh.shortOverviewTh,
+          keyPointsTh: JSON.stringify(summaryTh.keyPointsTh),
+          postMeetingChecklistTh: JSON.stringify(summaryTh.postMeetingChecklistTh),
+        } : {}),
       });
       logger.info({ recordingId }, 'Import completed successfully');
     } catch (summaryError) {

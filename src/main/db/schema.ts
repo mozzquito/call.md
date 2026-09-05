@@ -43,6 +43,13 @@ export const recordings = sqliteTable('recordings', {
   // Import (Feature 2): recordings created from an uploaded file rather than a live call
   source: text('source', { enum: ['live', 'imported'] }).notNull().default('live'),
   importedFileName: text('imported_file_name'), // original filename, for display in history
+  // Final-summary Thai translation (Feature 4) - completes the loop from the
+  // live per-segment overlay (Feature 1), which only translated the live
+  // view, not the saved summary. Null when translation is off or the
+  // summary was already predominantly Thai (nothing to translate).
+  shortOverviewTh: text('short_overview_th'),
+  keyPointsTh: text('key_points_th'), // JSON: KeyPoint[] array, same shape as keyPoints
+  postMeetingChecklistTh: text('post_meeting_checklist_th'), // JSON: string[]
 });
 
 // Meeting Co-Pilot Tables

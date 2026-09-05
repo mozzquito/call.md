@@ -111,11 +111,12 @@ export function RecordingDetailPage({ recordingId, onBack }: RecordingDetailPage
           {/* Cards */}
           <div className="flex flex-col gap-[20px] pb-[20px]">
             {/* Meeting Summary Card */}
-            <SummaryCard summary={recording.shortOverview} />
+            <SummaryCard summary={recording.shortOverview} summaryTh={recording.shortOverviewTh} />
 
             {/* Key Points Card */}
             <KeyPointsCard
               keyPoints={recording.keyPoints}
+              keyPointsTh={recording.keyPointsTh}
               expanded={showAllKeyPoints}
               onToggle={() => setShowAllKeyPoints(!showAllKeyPoints)}
             />
@@ -124,6 +125,7 @@ export function RecordingDetailPage({ recordingId, onBack }: RecordingDetailPage
             <ActionItemsCard
               recordingId={recordingId}
               checklist={recording.postMeetingChecklist}
+              checklistTh={recording.postMeetingChecklistTh}
               completedIndices={recording.postMeetingChecklistCompleted}
             />
 
@@ -314,15 +316,16 @@ function Header({ title, recordingId, createdAt, duration, playerUrl, onBack }: 
 
 interface SummaryCardProps {
   summary: string | null | undefined;
+  summaryTh?: string | null;
 }
 
-function SummaryCard({ summary }: SummaryCardProps) {
+function SummaryCard({ summary, summaryTh }: SummaryCardProps) {
   const [copied, setCopied] = useState(false);
 
   if (!summary) return null;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(summary);
+    await navigator.clipboard.writeText(summaryTh ? `${summary}\n\n${summaryTh}` : summary);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -347,26 +350,42 @@ function SummaryCard({ summary }: SummaryCardProps) {
       <p className="text-[14px] text-[#2d2d2d] leading-[20px] tracking-[0.07px]">
         {summary}
       </p>
+      {/* Thai translation (Feature 4) */}
+      {summaryTh && (
+        <>
+          <div className="border-t border-[#ffe9d3]" />
+          <p className="text-[14px] text-[#464646] leading-[20px] tracking-[0.07px]">
+            {summaryTh}
+          </p>
+        </>
+      )}
     </div>
   );
 }
 
 interface KeyPointsCardProps {
   keyPoints: Array<{ topic: string; points: string[] }> | null | undefined;
+  keyPointsTh?: Array<{ topic: string; points: string[] }> | null;
   expanded: boolean;
   onToggle: () => void;
 }
 
-function KeyPointsCard({ keyPoints, expanded, onToggle }: KeyPointsCardProps) {
+function KeyPointsCard({ keyPoints, keyPointsTh, expanded, onToggle }: KeyPointsCardProps) {
   const [copied, setCopied] = useState(false);
 
   if (!keyPoints || keyPoints.length === 0) return null;
 
-  const handleCopy = async () => {
-    const text = keyPoints.map((kp, idx) => {
-      const points = kp.points.map(p => `  • ${p}`).join('\n');
-      return `${idx + 1}. ${kp.topic}\n${points}`;
+  const formatKeyPoints = (points: Array<{ topic: string; points: string[] }>) =>
+    points.map((kp, idx) => {
+      const items = kp.points.map(p => `  • ${p}`).join('\n');
+      return `${idx + 1}. ${kp.topic}\n${items}`;
     }).join('\n\n');
+
+  const handleCopy = async () => {
+    let text = formatKeyPoints(keyPoints);
+    if (keyPointsTh && keyPointsTh.length > 0) {
+      text += `\n\n${formatKeyPoints(keyPointsTh)}`;
+    }
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -410,6 +429,29 @@ function KeyPointsCard({ keyPoints, expanded, onToggle }: KeyPointsCardProps) {
         ))}
       </div>
 
+      {/* Thai translation (Feature 4) */}
+      {keyPointsTh && keyPointsTh.length > 0 && (
+        <>
+          <div className="border-t border-[#ffe9d3]" />
+          <div className="flex flex-col text-[14px] text-[#464646]">
+            {keyPointsTh.map((kp, idx) => (
+              <div key={idx} className="mb-2">
+                <p className="font-semibold leading-[24px]">
+                  {idx + 1}. {kp.topic}
+                </p>
+                <ul className="list-disc ml-[42px]">
+                  {kp.points.map((point, pIdx) => (
+                    <li key={pIdx} className="leading-[24px]">
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Gradient Overlay & See More Button */}
       {!expanded && (
         <>
@@ -432,10 +474,11 @@ function KeyPointsCard({ keyPoints, expanded, onToggle }: KeyPointsCardProps) {
 interface ActionItemsCardProps {
   recordingId: number;
   checklist: string[] | null | undefined;
+  checklistTh?: string[] | null;
   completedIndices: number[] | null | undefined;
 }
 
-function ActionItemsCard({ recordingId, checklist, completedIndices }: ActionItemsCardProps) {
+function ActionItemsCard({ recordingId, checklist, checklistTh, completedIndices }: ActionItemsCardProps) {
   const [checked, setChecked] = useState<Set<number>>(new Set(completedIndices || []));
   const updateChecklistMutation = trpc.recordings.updateChecklistCompletion.useMutation();
 
@@ -495,11 +538,23 @@ function ActionItemsCard({ recordingId, checklist, completedIndices }: ActionIte
                 )}>
                   {isChecked && <Check className="h-3 w-3 text-white" />}
                 </div>
-                <span className={cn(
-                  "text-[14px] leading-[20px] tracking-[0.07px]",
-                  isChecked ? "text-[#969696] line-through" : "text-black"
-                )}>
-                  {item}
+                <span className="flex flex-col gap-[2px]">
+                  <span className={cn(
+                    "text-[14px] leading-[20px] tracking-[0.07px]",
+                    isChecked ? "text-[#969696] line-through" : "text-black"
+                  )}>
+                    {item}
+                  </span>
+                  {/* Thai translation (Feature 4) - checklistTh is the same
+                      length/order as checklist, so index alignment holds. */}
+                  {checklistTh?.[idx] && (
+                    <span className={cn(
+                      "text-[13px] leading-[19px] tracking-[0.065px]",
+                      isChecked ? "text-[#c0c0c0] line-through" : "text-[#969696]"
+                    )}>
+                      {checklistTh[idx]}
+                    </span>
+                  )}
                 </span>
               </div>
             );

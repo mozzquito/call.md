@@ -86,7 +86,10 @@ export function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
       playbook_snapshot TEXT,
       metrics_snapshot TEXT,
       source TEXT NOT NULL DEFAULT 'live' CHECK(source IN ('live', 'imported')),
-      imported_file_name TEXT
+      imported_file_name TEXT,
+      short_overview_th TEXT,
+      key_points_th TEXT,
+      post_meeting_checklist_th TEXT
     );
 
     -- Meeting Co-Pilot tables
@@ -351,6 +354,9 @@ function ensureRecordingColumns(): void {
   addColumnIfMissing('post_meeting_checklist_completed', "ALTER TABLE recordings ADD COLUMN post_meeting_checklist_completed TEXT");
   addColumnIfMissing('source', "ALTER TABLE recordings ADD COLUMN source TEXT NOT NULL DEFAULT 'live'");
   addColumnIfMissing('imported_file_name', "ALTER TABLE recordings ADD COLUMN imported_file_name TEXT");
+  addColumnIfMissing('short_overview_th', "ALTER TABLE recordings ADD COLUMN short_overview_th TEXT");
+  addColumnIfMissing('key_points_th', "ALTER TABLE recordings ADD COLUMN key_points_th TEXT");
+  addColumnIfMissing('post_meeting_checklist_th', "ALTER TABLE recordings ADD COLUMN post_meeting_checklist_th TEXT");
 }
 
 function ensureTranscriptSegmentColumns(): void {

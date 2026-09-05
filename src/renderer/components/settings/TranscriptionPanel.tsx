@@ -143,16 +143,17 @@ export function TranscriptionPanel() {
         <div className="flex items-center justify-between px-[20px] py-[16px]">
           <div>
             <h3 className="text-[16px] font-semibold text-[#141420] leading-[22.5px]">
-              Live Thai Translation
+              Thai Translation
               <span className="ml-[8px] text-[11px] font-medium text-[#969696] align-middle">
                 Beta
               </span>
             </h3>
             <p className="text-[13px] text-[#969696] mt-[2px] max-w-[420px]">
-              Shows a Thai translation under each transcript line as the meeting happens.
-              Real-time Thai transcription itself isn't supported yet by the transcription
-              backend - this translates the English (or other) transcript instead, a few
-              seconds behind live.
+              Shows a Thai translation under each transcript line as the meeting happens (a few
+              seconds behind live), and also translates the final meeting summary, key points, and
+              action items once the recording ends. Real-time Thai transcription itself isn't
+              supported yet by the transcription backend - this translates the English (or other)
+              transcript and summary instead. Skipped automatically if the source is already Thai.
             </p>
           </div>
           <div className="flex items-center gap-[8px] shrink-0">

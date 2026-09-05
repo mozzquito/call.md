@@ -1,7 +1,9 @@
 # Design: Thai Translation, Recording Import, Second-Opinion Summary
 
-**Status**: All 3 features implemented, live-tested, committed, and pushed to
-`mozzquito/call.md` (commits `3217122`, `d8c009d`, `a6c0cb8`) as of 2026-09-05.
+**Status**: Features 1-3 implemented, live-tested, committed, and pushed to
+`mozzquito/call.md` (commits `3217122`, `d8c009d`, `a6c0cb8`) as of 2026-09-05. Feature 4
+(added after a follow-up round of feature suggestions) implemented same day, pending
+live test and commit.
 **Scope**: Personal fork (mozzquito/call.md), solo use, not intended for upstream PR.
 **Design reviewed by**: zcode (GLM) and agy (Gemini), 2026-09-04 (design stage) and
 2026-09-05 (diff stage, per feature).
@@ -236,3 +238,65 @@ happens.
 - In-app playback of imported video files (declined — transcript+summary is enough)
 - Direct GLM/Gemini API calls instead of CLI shell-out for Feature 3 (declined — CLI reuse
   preferred over managing new API keys)
+
+---
+
+## Feature 4: Thai Translation of the Final Meeting Summary — IMPLEMENTED 2026-09-05
+
+**Origin**: after using Features 1-3 live, asked Ayami + zcode + agy for a fresh round of
+"what's next" suggestions. All three independently ranked this at or near the top: the live
+per-segment overlay (Feature 1) translates the *live view*, but the *saved* summary
+(shortOverview/keyPoints/postMeetingChecklist) stayed English even with the toggle on —
+an inconsistent, unfinished-feeling gap given what had just been built.
+
+**Goal**: once a summary is generated (live-call-end or import), also translate it to Thai
+if the same `translationEnabled` setting is on — no second toggle.
+
+### Architecture
+
+- New `src/main/services/copilot/summary-translation.service.ts`. Three independent
+  translation calls (overview paragraph, keyPoints JSON, checklist JSON array) via the
+  existing `getLLMService()` — no new credentials.
+- **Skips translation entirely if the summary is already predominantly Thai** — checked via
+  a Thai-Unicode-block character-density heuristic (`>30%` of non-whitespace chars).
+  Relevant because an imported Thai-language recording (Feature 2) already gets a Thai
+  summary directly from the existing generator; translating Thai to Thai would be wasted
+  LLM calls. Verified against the real Huawei-meeting import from Feature 2's live test.
+- **Each of the three sections translates and validates independently.** A section that
+  fails - LLM error, unparseable JSON, or output that doesn't match the expected shape/
+  length - resolves to `null` for that section only, never a thrown error and never a
+  silent English-text fallback disguised as a translation. Both zcode and agy's diff-stage
+  review independently caught two things about the first draft, now fixed:
+  1. The translated `keyPoints`/`checklist` JSON was only checked with `Array.isArray()`,
+     not validated against the expected shape or length - an LLM deviating from the
+     requested structure would have reached the renderer's `.map()` calls and could have
+     crashed the whole detail page. Now validated with `isValidKeyPoints`/
+     `isValidStringArray` (shape *and* length) before being trusted.
+  2. On failure, the original draft returned the *English* text as the "Thai" result,
+     which would render as English dressed up as a translation. Now returns `null` per
+     section instead, and the renderer's existing `if (x)` guards already skip rendering
+     absent sections correctly.
+- Wired into both places a summary is generated: `sales-copilot.service.ts`'s `endCall()`
+  (live calls) and `import.service.ts`'s `processImportedRecording()` (imports). Both call
+  sites wrap the translation call in its own try/catch, separate from the summary-
+  generation try/catch - a translation failure must never be able to mark an
+  already-successful English summary as failed (the function's own contract is "never
+  throws", but this is a deliberate belt-and-suspenders guard against that contract ever
+  being violated by a future change).
+- New nullable columns `shortOverviewTh`, `keyPointsTh`, `postMeetingChecklistTh` on
+  `recordings` (same `addColumnIfMissing` migration pattern as the rest of this fork).
+- Renderer: `SummaryCard`, `KeyPointsCard`, `ActionItemsCard` in `RecordingDetailPage.tsx`
+  each render the Thai version stacked below the English (separated by a thin divider),
+  matching the visual pattern the live overlay (Feature 1) already established.
+  `ActionItemsCard` aligns `checklistTh[idx]` with `checklist[idx]` by position - safe
+  specifically because `translateChecklist` now enforces equal length before returning.
+- Settings copy for the toggle (`TranscriptionPanel.tsx`) updated from "Live Thai
+  Translation" to "Thai Translation" and its description broadened to mention both the
+  live overlay and the final summary, since the setting now covers both.
+
+### Known tradeoff
+
+Live-call-end now blocks on 3 additional parallel LLM calls before the recording is marked
+processed, adding a few seconds to perceived "call ended" latency when the toggle is on.
+Accepted as proportionate - the primary summary generation already does the same thing
+(3 parallel LLM calls) for the English version.
