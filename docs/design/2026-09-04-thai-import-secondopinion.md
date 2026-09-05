@@ -1,8 +1,10 @@
 # Design: Thai Translation, Recording Import, Second-Opinion Summary
 
-**Status**: Design approved by มอส, not yet implemented.
+**Status**: All 3 features implemented, live-tested, committed, and pushed to
+`mozzquito/call.md` (commits `3217122`, `d8c009d`, `a6c0cb8`) as of 2026-09-05.
 **Scope**: Personal fork (mozzquito/call.md), solo use, not intended for upstream PR.
-**Design reviewed by**: zcode (GLM) and agy (Gemini), 2026-09-04.
+**Design reviewed by**: zcode (GLM) and agy (Gemini), 2026-09-04 (design stage) and
+2026-09-05 (diff stage, per feature).
 
 ## Constraints (must not touch)
 
