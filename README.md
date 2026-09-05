@@ -8,7 +8,7 @@
 [![Issues][issues-shield]][issues-url]
 [![Website][website-shield]][website-url]
 
-🇬🇧 [English](README.md) | 🇹🇭 ภาษาไทย (กำลังอ่านอยู่)
+🇬🇧 [English](README.en.md) | 🇹🇭 ภาษาไทย (กำลังอ่านอยู่)
 
 <!-- PROJECT LOGO -->
 <br />
