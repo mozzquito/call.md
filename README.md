@@ -11,7 +11,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <a href="https://github.com/video-db/call.md">
+  <a href="https://github.com/mozzquito/call.md">
     <img src="resources/wordmark-color-black-bg.png" alt="Call.md Logo" width="300" height="">
   </a>
 
@@ -27,9 +27,16 @@
     ·
     <a href="#quick-install">Install</a>
     ·
-    <a href="https://github.com/video-db/call.md/issues">Report Bug</a>
+    <a href="https://github.com/mozzquito/call.md/issues">Report Bug</a>
   </p>
 </p>
+
+> **This is a personal fork** maintained by [@mozzquito](https://github.com/mozzquito), not
+> affiliated with VideoDB. It extends the upstream app
+> ([video-db/call.md](https://github.com/video-db/call.md)) with live Thai translation,
+> file import with batch transcription, second-opinion AI summaries, and full-text search
+> over recording history — see [Fork Additions](#fork-additions) below, or the fuller
+> Thai-language writeup at [`docs/features-th.html`](docs/features-th.html).
 
 ---
 
@@ -41,6 +48,10 @@ https://github.com/user-attachments/assets/94470e99-c0f6-4e35-9d03-b28efa362b3b
 
 
 ## Quick Install
+
+> **Note:** this installs the upstream official build, which does not include this fork's
+> additions (Thai translation, import, second-opinion summaries, search). To run this fork,
+> build from source — see [Getting Started (Developers)](#getting-started-developers).
 
 **macOS** (Apple Silicon & Intel):
 ```bash
@@ -81,6 +92,10 @@ See [Building for other platforms](#building-for-other-platforms).
 
 Call.md turns meetings into live agent loops. It records locally, transcribes in real-time (you vs them), and provides live intelligence during calls. When the meeting ends, it generates summaries with action items and can send data to your workflow automation platforms.
 
+This fork extends that with live Thai translation, file import with batch transcription for
+recordings made elsewhere, second-opinion AI summaries, and full-text search across your
+entire recording history — see [Fork Additions](#fork-additions).
+
 ## Features
 
 ### During the Meeting (Live Intelligence)
@@ -110,9 +125,34 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 - **2 Hour Recording Limit** - Recordings stop themselves after 2 hours of active recording time, with a warning 5 minutes before; pauses and system sleep do not consume the allowance
 - **Local-First** - Settings, meeting history, transcripts, and generated metadata are stored in the local SQLite database
 - **Screen & Audio Recording** - Capture screen, microphone, and system audio simultaneously
-- **Recording History** - Browse and review past recordings with full transcripts
+- **Recording History** - Browse and review past recordings with full transcripts, with full-text search across all of them (see [Fork Additions](#fork-additions))
 - **VideoDB Integration** - Transcription and AI features require internet connectivity
 - **Account Controls** - Validate and rotate the VideoDB API key from Settings, or log out and clear persisted session and Google credentials
+
+### Fork Additions
+
+Not part of upstream — added on this fork to support meetings conducted in Thai:
+
+- **Live Thai Translation** - Real-time Thai translation of the live transcript during
+  meetings, shown as a second line under each segment. Opt-in from **Settings →
+  Transcription**.
+- **Import & Batch Transcription** - Bring in an existing video or audio file (e.g. a Google
+  Meet recording) and transcribe it via VideoDB's batch pipeline, which supports languages
+  the live streaming engine doesn't yet, including Thai.
+- **Second-Opinion Summaries (zcode + agy)** - Generate an alternate meeting summary from
+  two external AI CLI agents (zcode on GLM, agy on Gemini/Sonnet) alongside the app's own
+  summary, for comparison.
+- **Thai Summary Translation** - Translates the final three-part summary (overview, key
+  points, action items) into Thai and stores it alongside the English original.
+- **Full-Text Search** - Search meeting names, summaries, and transcripts across your entire
+  recording history at once, via SQLite FTS5 with a trigram tokenizer (works for Thai, which
+  has no word spaces, as well as English).
+- **Import Hardening** - SHA-256 duplicate-file detection before importing, automatic
+  cleanup of the uploaded VideoDB asset if an import fails, and one-click markdown export of
+  the action-item checklist.
+
+A fuller Thai-language writeup of these features lives at
+[`docs/features-th.html`](docs/features-th.html).
 
 ## How It Works
 
@@ -135,10 +175,12 @@ Call.md turns meetings into live agent loops. It records locally, transcribes in
 - **tRPC 11** - End-to-end type-safe API layer between main and renderer
 - **Hono** - Fast HTTP server for tRPC API endpoints
 - **Drizzle ORM + SQLite** - Type-safe database operations with local storage
+- **SQLite FTS5 (trigram tokenizer)** - Full-text search across recording history, including Thai
 - **Zustand** - Lightweight state management
 - **VideoDB SDK** (0.3.0) - Screen recording, transcription, and video processing
 - **MCP SDK** (1.0.0) - Model Context Protocol for tool integrations
 - **OpenAI SDK** (6.19.0) - LLM calls via VideoDB's OpenAI-compatible API
+- **zcode / agy** - External AI CLI agents invoked as subprocesses for second-opinion summaries
 - **Vite** - Fast frontend bundling and hot module replacement
 
 ## Prerequisites
@@ -170,7 +212,7 @@ The app will transcribe in real-time, show live assists, and generate a summary 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/video-db/call.md.git
+   git clone https://github.com/mozzquito/call.md.git
    cd call-md
    ```
 
@@ -262,10 +304,14 @@ src/
 │       ├── copilot/        # Meeting intelligence services
 │       │   ├── context-manager.service.ts
 │       │   ├── conversation-metrics.service.ts
+│       │   ├── import.service.ts         # Fork: import & batch transcription
 │       │   ├── nudge-engine.service.ts
 │       │   ├── sales-copilot.service.ts  # Core orchestrator
+│       │   ├── second-opinion.service.ts # Fork: zcode + agy summaries
 │       │   ├── summary-generator.service.ts
-│       │   └── transcript-buffer.service.ts
+│       │   ├── summary-translation.service.ts # Fork: Thai summary translation
+│       │   ├── transcript-buffer.service.ts
+│       │   └── translation.service.ts    # Fork: live Thai translation
 │       ├── mcp/            # MCP orchestration and tool execution
 │       │   ├── connection-orchestrator.service.ts
 │       │   ├── intent-detector.service.ts
@@ -412,14 +458,16 @@ relevant data is also sent to the services you configure.
 - **Logs** — credential-shaped fields are redacted before anything is written.
 
 Upgrades migrate existing data in place on first launch; you do not need to log
-in again. Report security vulnerabilities privately to
-[support@videodb.io](mailto:support@videodb.io), not through a public issue.
+in again. Report security vulnerabilities in the upstream app privately to
+[support@videodb.io](mailto:support@videodb.io), not through a public issue. For issues
+specific to this fork's additions, use this repo's
+[GitHub Issues](https://github.com/mozzquito/call.md/issues) instead.
 
 ## Community & Support
 
-- **Documentation:** [docs.videodb.io](https://docs.videodb.io)
-- **Issues:** [GitHub Issues](https://github.com/video-db/call.md/issues)
-- **Discord:** [Join community](https://discord.gg/py9P639jGz)
+- **Documentation:** [docs.videodb.io](https://docs.videodb.io) (upstream VideoDB platform docs)
+- **Issues (this fork):** [GitHub Issues](https://github.com/mozzquito/call.md/issues)
+- **Discord:** [Join community](https://discord.gg/py9P639jGz) (VideoDB's community server)
 - **API Key:** [VideoDB Console](https://console.videodb.io)
 
 ---
@@ -439,9 +487,9 @@ in again. Report security vulnerabilities privately to
 [typescript-url]: https://www.typescriptlang.org/
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[stars-shield]: https://img.shields.io/github/stars/video-db/call.md.svg?style=for-the-badge
-[stars-url]: https://github.com/video-db/call.md/stargazers
-[issues-shield]: https://img.shields.io/github/issues/video-db/call.md.svg?style=for-the-badge
-[issues-url]: https://github.com/video-db/call.md/issues
+[stars-shield]: https://img.shields.io/github/stars/mozzquito/call.md.svg?style=for-the-badge
+[stars-url]: https://github.com/mozzquito/call.md/stargazers
+[issues-shield]: https://img.shields.io/github/issues/mozzquito/call.md.svg?style=for-the-badge
+[issues-url]: https://github.com/mozzquito/call.md/issues
 [website-shield]: https://img.shields.io/website?url=https%3A%2F%2Fvideodb.io%2F&style=for-the-badge&label=videodb.io
 [website-url]: https://videodb.io/
