@@ -40,6 +40,9 @@ export const recordings = sqliteTable('recordings', {
   // Post-meeting analysis
   postMeetingChecklist: text('post_meeting_checklist'), // JSON: string[] (action items after meeting)
   postMeetingChecklistCompleted: text('post_meeting_checklist_completed'), // JSON: number[] (indices of completed items)
+  // Import (Feature 2): recordings created from an uploaded file rather than a live call
+  source: text('source', { enum: ['live', 'imported'] }).notNull().default('live'),
+  importedFileName: text('imported_file_name'), // original filename, for display in history
 });
 
 // Meeting Co-Pilot Tables

@@ -407,6 +407,11 @@ const api: IpcApi = {
     }) => ipcRenderer.invoke('translation:translate-segment', params),
   },
 
+  import: {
+    selectAndUpload: (params?: { languageCode?: string }) =>
+      ipcRenderer.invoke('import:select-and-upload', params ?? {}),
+  },
+
   on: {
     recorderEvent: (callback: (event: RecorderEvent) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, data: RecorderEvent) => {

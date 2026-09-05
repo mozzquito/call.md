@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, CheckCircle2, AlertTriangle, Loader2, Circle, Copy, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, AlertTriangle, Loader2, Circle, Copy, ExternalLink, Upload } from 'lucide-react';
 import type { Recording } from '../../../shared/schemas/recording.schema';
 import { formatDate, formatDurationMinutes, stripMarkdown, cn } from '../../lib/utils';
 import { Tooltip } from '../ui/Tooltip';
@@ -84,7 +84,8 @@ function StatusBadge({ status }: { status: RecordingStatus }) {
 }
 
 function CopyPathButton({ recording }: { recording: Recording }) {
-  const isDisabled = recording.status === 'recording' || recording.status === 'failed';
+  // Imported recordings never had a local ~/.call_md capture folder created for them.
+  const isDisabled = recording.status === 'recording' || recording.status === 'failed' || recording.source === 'imported';
   const path = getCallMdPath(recording);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -119,7 +120,8 @@ function CopyPathButton({ recording }: { recording: Recording }) {
 }
 
 function OpenFolderButton({ recording }: { recording: Recording }) {
-  const isDisabled = recording.status === 'recording' || recording.status === 'failed';
+  // Imported recordings never had a local ~/.call_md capture folder created for them.
+  const isDisabled = recording.status === 'recording' || recording.status === 'failed' || recording.source === 'imported';
   const path = getCallMdPath(recording);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -194,7 +196,15 @@ export function RecordingCard({ recording, onClick }: RecordingCardProps) {
       <div className="flex flex-col gap-[10px]">
         {/* Status Badge and Action Buttons */}
         <div className="flex items-start justify-between">
-          <StatusBadge status={recording.status} />
+          <div className="flex items-center gap-[8px]">
+            <StatusBadge status={recording.status} />
+            {recording.source === 'imported' && (
+              <div className="inline-flex items-center gap-[4px] pl-[6px] pr-[8px] py-[4px] rounded-[36px] bg-[#efefef] text-[#464646] text-[13px] font-medium leading-[1.5]">
+                <Upload className="h-3.5 w-3.5" />
+                <span>Imported</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-[8px]">
             <CopyPathButton recording={recording} />
             <OpenFolderButton recording={recording} />

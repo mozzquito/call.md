@@ -275,6 +275,14 @@ export interface IpcApi {
       text: string;
     }) => Promise<{ success: boolean; translatedText?: string; error?: string }>;
   };
+  import: {
+    selectAndUpload: (params?: { languageCode?: string }) => Promise<{
+      success: boolean;
+      recordingId?: number;
+      cancelled?: boolean;
+      error?: string;
+    }>;
+  };
   on: {
     recorderEvent: (callback: (event: RecorderEvent) => void) => () => void;
     authRequired: (callback: () => void) => () => void;

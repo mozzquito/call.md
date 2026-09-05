@@ -89,6 +89,9 @@ function toApiRecording(dbRecording: ReturnType<typeof getRecordingById>) {
     // Post-meeting analysis
     postMeetingChecklist: postMeetingChecklist || null,
     postMeetingChecklistCompleted: postMeetingChecklistCompleted || null,
+    // Import (Feature 2)
+    source: ((dbRecording as any).source || 'live') as 'live' | 'imported',
+    importedFileName: (dbRecording as any).importedFileName || null,
   };
 }
 
@@ -241,10 +244,14 @@ export const recordingsRouter = router({
       const runtimeConfig = loadRuntimeConfig();
       const apiUrl = runtimeConfig.apiUrl;
 
-      // Try to recover processing recordings from VideoDB
+      // Try to recover processing recordings from VideoDB. Imported recordings
+      // (Feature 2) never had a capture session to recover - they upload via
+      // a different VideoDB API entirely - so attempting this for them would
+      // just be a guaranteed-to-fail network call.
       if (apiKey) {
         const processingRecordings = recordings.filter(
           r => r.status === 'processing' && !r.videoId && r.sessionId !== input.excludeSessionId
+            && (r as any).source !== 'imported'
         );
 
         for (const recording of processingRecordings) {

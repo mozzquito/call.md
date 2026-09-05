@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const RecordingStatusSchema = z.enum(['recording', 'processing', 'available', 'failed']);
 export const InsightsStatusSchema = z.enum(['pending', 'processing', 'ready', 'failed']);
+export const RecordingSourceSchema = z.enum(['live', 'imported']);
 
 // Key Points schema for structured meeting breakdown
 export const KeyPointSchema = z.object({
@@ -94,6 +95,9 @@ export const RecordingSchema = z.object({
   // Post-meeting analysis
   postMeetingChecklist: z.array(z.string()).nullable().optional(),
   postMeetingChecklistCompleted: z.array(z.number()).nullable().optional(),
+  // Import (Feature 2)
+  source: RecordingSourceSchema.optional(),
+  importedFileName: z.string().nullable().optional(),
 });
 
 export const CreateRecordingInputSchema = z.object({
@@ -115,6 +119,7 @@ export const GetRecordingInputSchema = z.object({
 
 export type RecordingStatus = z.infer<typeof RecordingStatusSchema>;
 export type InsightsStatus = z.infer<typeof InsightsStatusSchema>;
+export type RecordingSource = z.infer<typeof RecordingSourceSchema>;
 export type Recording = z.infer<typeof RecordingSchema>;
 export type KeyPoint = z.infer<typeof KeyPointSchema>;
 export type KeyPoints = z.infer<typeof KeyPointsSchema>;

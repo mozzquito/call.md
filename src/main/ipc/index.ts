@@ -10,6 +10,7 @@ import { setupWorkflowHandlers, removeWorkflowHandlers, setWorkflowsMainWindow }
 import { setupVisualIndexIPC } from './visual-index';
 import { setupWidgetIpcHandlers, removeWidgetIpcHandlers } from './widget';
 import { setupTranslationHandlers, removeTranslationHandlers } from './translation';
+import { setupImportHandlers, removeImportHandlers } from './import';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('ipc');
@@ -28,6 +29,7 @@ export function setupIpcHandlers(): void {
   setupVisualIndexIPC();
   setupWidgetIpcHandlers();
   setupTranslationHandlers();
+  setupImportHandlers();
 
   logger.info('IPC handlers registered');
 }
@@ -83,6 +85,9 @@ export function removeIpcHandlers(): void {
 
   // Translation handlers
   removeTranslationHandlers();
+
+  // Import handlers
+  removeImportHandlers();
 
   logger.info('IPC handlers removed');
 }

@@ -3,6 +3,7 @@ const videodb = require('videodb');
 const { connect } = videodb;
 type Connection = ReturnType<typeof connect>;
 
+import path from 'path';
 import { createChildLogger } from '../lib/logger';
 
 const logger = createChildLogger('videodb-service');
@@ -262,6 +263,65 @@ ${transcriptText}`;
     return {
       downloadUrl: result.downloadUrl as string,
       name: result.name as string,
+    };
+  }
+
+  /**
+   * Upload a local file (video or audio) and generate its transcript via
+   * VideoDB's batch pipeline. Unlike live capture (real-time streaming
+   * transcription), this path supports languages the streaming engine
+   * doesn't yet - see docs/design/2026-09-04-thai-import-secondopinion.md.
+   *
+   * Returns the plain transcript text - chunking it into timed segments is
+   * the caller's job (import.service.ts), since VideoDB's word-level
+   * timestamp shape isn't guaranteed identical between Video and Audio
+   * assets and this app doesn't need exact per-word timing for an import.
+   */
+  async uploadAndTranscribeFile(
+    filePath: string,
+    languageCode?: string
+  ): Promise<{
+    assetId: string;
+    streamUrl: string | null;
+    playerUrl: string | null;
+    durationSeconds: number;
+    fullText: string;
+  }> {
+    const conn = this.getConnection();
+    const collection = await conn.getCollection(this.collectionId);
+
+    logger.info({ fileName: path.basename(filePath) }, 'Uploading local file to VideoDB');
+    const uploaded = await collection.uploadFile({ filePath });
+
+    if (!uploaded) {
+      throw new Error('VideoDB upload returned no asset');
+    }
+    if (!('generateTranscript' in uploaded) || !('getTranscriptText' in uploaded)) {
+      throw new Error('Uploaded file does not support transcription - expected a video or audio file');
+    }
+
+    // Duck-typed rather than imported from the `videodb` package's Video/Audio
+    // classes directly - only the members this method actually uses, since
+    // Audio assets don't expose stream/player URLs the way Video does.
+    const asset = uploaded as {
+      id: string;
+      length: number;
+      streamUrl?: string;
+      playerUrl?: string;
+      generateTranscript: (force?: boolean, languageCode?: string) => Promise<unknown>;
+      getTranscriptText: (start?: number, end?: number) => Promise<string>;
+    };
+    logger.info({ assetId: asset.id }, 'Upload complete, generating transcript');
+
+    await asset.generateTranscript(true, languageCode);
+    const fullText = await asset.getTranscriptText();
+
+    return {
+      assetId: asset.id,
+      streamUrl: asset.streamUrl ?? null,
+      playerUrl: asset.playerUrl ?? null,
+      durationSeconds: Number(asset.length) || 0,
+      fullText,
     };
   }
 

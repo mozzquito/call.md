@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { RefreshCw, Inbox, Search } from 'lucide-react';
+import { RefreshCw, Inbox, Search, Upload, AlertCircle } from 'lucide-react';
 import { RecordingCard } from './RecordingCard';
 import { RecordingDetailPage } from './RecordingDetailPage';
 import { trpc } from '../../api/trpc';
@@ -22,6 +22,8 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
   }, [initialSelectedRecordingId, onClearInitialSelection]);
   const [hasCleanedUp, setHasCleanedUp] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const activeSessionId = useSessionStore((state) => state.sessionId);
 
@@ -83,6 +85,28 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
     });
   }, [recordings, searchQuery]);
 
+  const handleImport = async () => {
+    setImportError(null);
+    setIsImporting(true);
+    try {
+      const result = await window.electronAPI.import.selectAndUpload();
+      if (result.cancelled) {
+        return;
+      }
+      if (!result.success) {
+        setImportError(result.error || 'Import failed');
+        return;
+      }
+      // The new recording lands with status 'processing'; refetch so it
+      // shows up immediately instead of waiting for the next 10s poll.
+      refetch();
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Import failed');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   // If a recording is selected, show the detail page
   if (selectedRecordingId !== null) {
     return (
@@ -106,9 +130,9 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="px-8 pb-6">
-        <div className="relative max-w-md">
+      {/* Search Bar + Import */}
+      <div className="px-8 pb-6 flex items-center justify-between gap-4">
+        <div className="relative max-w-md flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-[#969696]" />
           <input
             type="text"
@@ -118,7 +142,26 @@ export function HistoryView({ initialSelectedRecordingId, onClearInitialSelectio
             className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#e0e0e0] bg-[#fafafa] text-[14px] text-black placeholder:text-[#969696] focus:outline-none focus:border-[#c0c0c0] focus:bg-white transition-colors"
           />
         </div>
+        <button
+          onClick={handleImport}
+          disabled={isImporting}
+          className="h-11 px-4 rounded-xl border border-[#e0e0e0] bg-[#fafafa] text-[14px] font-medium text-[#464646] flex items-center gap-2 hover:bg-white hover:border-[#c0c0c0] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+        >
+          {isImporting ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="h-4 w-4" />
+          )}
+          Import
+        </button>
       </div>
+
+      {importError && (
+        <div className="mx-8 mb-6 flex items-start gap-2 p-3 bg-[rgba(209,36,47,0.06)] border border-[rgba(209,36,47,0.19)] rounded-xl">
+          <AlertCircle className="w-4 h-4 text-[#d1242f] shrink-0 mt-0.5" />
+          <span className="text-[13px] text-[#d1242f]">{importError}</span>
+        </div>
+      )}
 
       {/* Recording Cards Grid */}
       <div className="flex-1 overflow-y-auto px-8 pb-8">

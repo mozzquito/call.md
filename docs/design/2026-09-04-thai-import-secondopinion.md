@@ -64,7 +64,7 @@ flagged the context-snapshot-timing race and the missing input validation; both 
 
 ---
 
-## Feature 2: Import & Batch-Process Existing Recordings
+## Feature 2: Import & Batch-Process Existing Recordings — IMPLEMENTED 2026-09-05
 
 **Goal**: manually import a video/audio file (e.g. a Google Meet recording already
 downloaded from Drive) and get transcript + summary, including Thai (batch transcription
@@ -75,32 +75,61 @@ the file themselves first), no in-app playback of imported video (transcript + s
 only — playback would require a loopback media server or custom protocol to satisfy
 `webSecurity`, not worth the complexity for v1).
 
-### Architecture
+### Architecture (as actually built — revised from the plan below)
 
 - **File picker runs entirely in the Main process** (`dialog.showOpenDialog`), never accepts
-  a renderer-supplied path. This is the one hard security requirement both reviewers flagged
-  — a sandboxed renderer that could pass arbitrary local paths to an upload-to-cloud call is
-  a real exfiltration surface if the renderer were ever compromised. tRPC procedure
-  `import.selectAndUploadFile` — renderer just says "user clicked Import," gets back a
-  `recordingId` + status.
-- **Async job pattern, not a blocking request.** VideoDB upload + AssemblyAI batch transcribe
-  on a 1–2hr file can take minutes — holding an HTTP/tRPC request open that long risks
-  timeouts. `import.selectAndUploadFile` returns immediately with
-  `{ recordingId, status: 'processing' }`; main process emits IPC progress events
-  (`import:progress`, `import:completed`) as the job advances.
-- VideoDB Node SDK (`videodb` npm package, already used in `videodb.service.ts`) exposes
-  `coll.uploadFile({ file_path })` for arbitrary local files — unused today, greenfield
-  addition. After upload, request transcript with `language_code: 'th'` (or whatever the
-  user picks — batch transcription's language support is broader than streaming's).
+  a renderer-supplied path — exactly as planned. IPC handler `import:select-and-upload`
+  (a plain IPC handler, not a tRPC procedure as originally sketched — matches the pattern
+  Feature 1's translation handler already established). Renderer just says "user clicked
+  Import," gets back `{ recordingId }` or `{ cancelled: true }`.
+- **No new progress-event channel.** While implementing, found that `HistoryView.tsx`
+  already polls `recordings.list` every 10s (`refetchInterval: 10000`) and already renders
+  a "Processing" badge with a spinner for `status === 'processing'`. Reusing that (the
+  import handler just sets `status: 'processing'` → `'available'`/`'failed'` on the same
+  `recordings` row) gives identical UX to a live recording's processing state, for free —
+  simpler than the originally-planned `import:progress`/`import:completed` push events.
+- VideoDB Node SDK's `collection.uploadFile({ filePath })` (confirmed against the installed
+  package's actual `.d.ts`, not assumed) uploads the file; `asset.generateTranscript(true,
+  languageCode)` + `asset.getTranscriptText()` (also confirmed field names: `filePath`,
+  `length`, not `path`/`duration` — a review pass from one of the two second-opinion
+  agents guessed the wrong field names here without checking the installed package;
+  verified against `node_modules/videodb/dist/**/*.d.ts` before trusting it).
+- **Transcript chunking is character-based, not word-based.** The first version chunked by
+  splitting on whitespace (~40 "words" per segment) — both zcode and (independently)
+  the general review process caught that this breaks for Thai, which doesn't delimit
+  words with spaces: a Thai transcript would come back as one giant unsplit token, one
+  segment, degenerate timestamps. Fixed to chunk by character count (~200 chars),
+  preferring to break at a nearby space when one exists (harmless for Thai, keeps
+  space-delimited languages readable). See `chunkTranscriptText` in `import.service.ts`.
+  Segment timestamps are still an approximation (proportional character offset over total
+  duration, not real per-word timing) — acceptable for the transcript view and for feeding
+  the summary generator, not frame-accurate.
 - Resulting segments insert into the existing `transcriptSegments` table under a new
-  `recordings` row. Once segments exist, **`SummaryGeneratorService.generate(recordingId)`
-  runs completely unmodified** — it only needs a `recordingId`, doesn't care if the
-  recording was live or imported.
+  `recordings` row (all under channel `'them'` - no speaker diarization on a plain batch
+  transcript, a known limitation). Once segments exist, **`SummaryGeneratorService.
+  generate(recordingId)` runs completely unmodified**.
+- **Transcript availability is decoupled from summary success.** The recording is marked
+  `status: 'available'` as soon as segments are persisted, before attempting the summary;
+  a summary failure only sets `insightsStatus: 'failed'` without discarding the
+  already-successful (and already-paid-for, on VideoDB's side) transcript. `insightsStatus`
+  exists precisely for this — a caught gap from review, since `SummaryGeneratorService`
+  effectively never throws in practice but the decoupling is correct defensively regardless.
+- Stuck-`'processing'` recovery on app crash/quit needs no new code: `recordings.
+  cleanupStale` (already existed, already wired into `HistoryView`'s mount effect) marks
+  any recording stuck in `'processing'` with no `shortOverview` as `'failed'` after 60
+  minutes, regardless of source. Added one exclusion so it doesn't waste a network call
+  attempting VideoDB capture-session recovery for imports specifically (they never had one).
 - DB: `recordings.source` enum (`'live' | 'imported'`, default `'live'`),
-  `recordings.importedFileName` (nullable) for history-list display.
+  `recordings.importedFileName` (nullable). History list shows an "Imported" tag next to
+  the status badge; the Copy-path/Open-folder buttons are disabled for imported recordings
+  (they'd point at a `~/.call_md/...` capture folder that was never created for an import).
+- File paths are logged as `path.basename(...)` only, not the full path, in every log call
+  on this path — both review agents flagged full-path logging as an avoidable info leak
+  into log files.
 - **Known gaps to accept for v1** (not blockers, just not solved yet): no dedup check if the
-  same file gets imported twice, no file-size/duration limit, no cleanup of a partial upload
-  if the job fails mid-way. Revisit only if these actually bite in practice.
+  same file gets imported twice, no cleanup of the uploaded VideoDB asset if summary
+  generation fails, no guard against the recording being deleted while the pipeline is
+  still running. Revisit only if these actually bite in practice.
 
 ---
 
